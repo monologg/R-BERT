@@ -1,9 +1,13 @@
 import os
+import csv
 import copy
 import json
 import logging
 
-from transformers.tokenization_bert import BertTokenizer
+import torch
+from torch.utils.data import TensorDataset
+
+from utils import RELATION_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +55,21 @@ class InputFeatures(object):
             Mask values selected in ``[0, 1]``:
             Usually  ``1`` for tokens that are NOT MASKED, ``0`` for MASKED (padded) tokens.
         token_type_ids: Segment token indices to indicate first and second portions of the inputs.
-        label: Label corresponding to the input
     """
 
-    def __init__(self, input_ids, attention_mask, token_type_ids, label):
+    def __init__(self, input_ids, attention_mask, token_type_ids, label_id,
+                 e11_p, e12_p, e21_p, e22_p,
+                 e1_mask, e2_mask):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
-        self.label = label
+        self.label_id = label_id
+        self.e11_p = e11_p
+        self.e12_p = e12_p
+        self.e21_p = e21_p
+        self.e22_p = e22_p
+        self.e1_mask = e1_mask
+        self.e2_mask = e2_mask
 
     def __repr__(self):
         return str(self.to_json_string())
@@ -73,14 +84,217 @@ class InputFeatures(object):
         return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
 
+class SemEvalProcessor(object):
+    """Processor for the Semeval data set """
+
+    def __init__(self, config):
+        self.config = config
+
+    @classmethod
+    def _read_tsv(cls, input_file, quotechar=None):
+        """Reads a tab separated value file."""
+        with open(input_file, "r", encoding="utf-8") as f:
+            reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
+            lines = []
+            for line in reader:
+                lines.append(line)
+            return lines
+
+    @staticmethod
+    def _create_examples(lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[1]
+            text_b = None
+            label = RELATION_LABELS.index(line[0])
+            if i % 1000 == 0:
+                logger.info(line)
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+    def get_train_examples(self):
+        """See base class."""
+        logger.info("LOOKING AT {}".format(
+            os.path.join(self.config.data_dir, self.config.train_file)))
+        return self._create_examples(self._read_tsv(os.path.join(self.config.data_dir, self.config.train_file)), "train")
+
+    def get_test_examples(self):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(self.config.data_dir, self.config.test_file)), "test")
+
+
+def convert_examples_to_features(examples, max_seq_len,
+                                 tokenizer, output_mode=None,
+                                 cls_token='[CLS]',
+                                 cls_token_segment_id=0,
+                                 sep_token='[SEP]',
+                                 pad_token=0,
+                                 pad_token_segment_id=0,
+                                 sequence_a_segment_id=0,
+                                 sequence_b_segment_id=1,
+                                 mask_padding_with_zero=True):
+    features = []
+    for (ex_index, example) in enumerate(examples):
+        if ex_index % 10000 == 0:
+            logger.info("Writing example %d of %d" % (ex_index, len(examples)))
+
+        # example.text_a = example.text_a.replace("[E11]", "#").replace("[E12]", "#").replace("[E21]", "$").replace("[E22]", "$")
+
+        tokens_a = tokenizer.tokenize(example.text_a)
+
+        e11_p = tokens_a.index("<e1>")  # the start position of entity1
+        e12_p = tokens_a.index("</e1>")  # the end position of entity1
+        e21_p = tokens_a.index("<e2>")  # the start position of entity2
+        e22_p = tokens_a.index("</e2>")  # the end position of entity2
+
+        # Replace the token
+        tokens_a[e11_p] = "$"
+        tokens_a[e12_p] = "$"
+        tokens_a[e21_p] = "#"
+        tokens_a[e22_p] = "#"
+
+        # Add 1 because of [CLS] token
+        e11_p += 1
+        e12_p += 1
+        e21_p += 1
+        e22_p += 1
+
+        tokens_b = None
+        if example.text_b:
+            tokens_b = tokenizer.tokenize(example.text_b)
+            # Modifies `tokens_a` and `tokens_b` in place so that the total
+            # length is less than the specified length.
+            # Account for [CLS], [SEP], [SEP] with "- 3". " -4" for RoBERTa.
+            special_tokens_count = 3
+            _truncate_seq_pair(tokens_a, tokens_b,
+                               max_seq_len - special_tokens_count)
+        else:
+            # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
+            special_tokens_count = 2
+            if len(tokens_a) > max_seq_len - special_tokens_count:
+                tokens_a = tokens_a[:(max_seq_len - special_tokens_count)]
+
+        tokens = tokens_a + [sep_token]
+        token_type_ids = [sequence_a_segment_id] * len(tokens)
+
+        if tokens_b:
+            tokens += tokens_b + [sep_token]
+            token_type_ids += [sequence_b_segment_id] * (len(tokens_b) + 1)
+
+        tokens = [cls_token] + tokens
+        token_type_ids = [cls_token_segment_id] + token_type_ids
+
+        input_ids = tokenizer.convert_tokens_to_ids(tokens)
+
+        # The mask has 1 for real tokens and 0 for padding tokens. Only real
+        # tokens are attended to.
+        attention_mask = [1 if mask_padding_with_zero else 0] * len(input_ids)
+
+        # Zero-pad up to the sequence length.
+        padding_length = max_seq_len - len(input_ids)
+        input_ids = input_ids + ([pad_token] * padding_length)
+        attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
+        token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
+
+        # e1 mask, e2 mask
+        e1_mask = [0] * len(attention_mask)
+        e2_mask = [0] * len(attention_mask)
+
+        for i in range(e11_p, e12_p + 1):
+            e1_mask[i] = 1
+        for i in range(e21_p, e22_p + 1):
+            e2_mask[i] = 1
+
+        assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(len(input_ids), max_seq_len)
+        assert len(attention_mask) == max_seq_len, "Error with input length {} vs {}".format(len(attention_mask), max_seq_len)
+        assert len(token_type_ids) == max_seq_len, "Error with input length {} vs {}".format(len(token_type_ids), max_seq_len)
+
+        if output_mode == "classification":
+            # label_id = label_map[example.label]
+            label_id = int(example.label)
+        elif output_mode == "regression":
+            label_id = float(example.label)
+        else:
+            raise KeyError(output_mode)
+
+        if ex_index < 5:
+            logger.info("*** Example ***")
+            logger.info("guid: %s" % example.guid)
+            logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
+            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+            logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
+            logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
+            logger.info("label: %s (id = %d)" % (example.label, label_id))
+            logger.info("e11_p: %s" % e11_p)
+            logger.info("e12_p: %s" % e12_p)
+            logger.info("e21_p: %s" % e21_p)
+            logger.info("e22_p: %s" % e22_p)
+            logger.info("e1_mask: %s" % " ".join([str(x) for x in e1_mask]))
+            logger.info("e2_mask: %s" % " ".join([str(x) for x in e2_mask]))
+
+        features.append(
+            InputFeatures(input_ids=input_ids,
+                          attention_mask=attention_mask,
+                          token_type_ids=token_type_ids,
+                          label_id=label_id,
+                          e11_p=e11_p,
+                          e12_p=e12_p,
+                          e21_p=e21_p,
+                          e22_p=e22_p,
+                          e1_mask=e1_mask,
+                          e2_mask=e2_mask))
+
+    return features
+
+
 def load_and_cache_examples(config, tokenizer, evaluate=False):
+    processor = SemEvalProcessor(config)
+    output_mode = "classification"
+
     # Load data features from cache or dataset file
-    cached_features_file = os.path.join(config.data_dir, 'cached_{}_{}'.format(
+    cached_features_file = os.path.join(config.data_dir, 'cached_{}_{}'.format(config.task, 'test' if evaluate else 'train'))
+    if os.path.exists(cached_features_file):
+        logger.info("Loading features from cached file %s", cached_features_file)
+        features = torch.load(cached_features_file)
+    else:
+        logger.info("Creating features from dataset file at %s", config.data_dir)
+        examples = processor.get_test_examples() if evaluate else processor.get_train_examples()
+        features = convert_examples_to_features(examples, config.max_seq_len, tokenizer, output_mode)
+        logger.info("Saving features into cached file %s", cached_features_file)
+        torch.save(features, cached_features_file)
 
-        'test' if evaluate else 'train',
+    # Convert to Tensors and build dataset
+    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+    all_e1_mask = torch.tensor([f.e1_mask for f in features], dtype=torch.long)  # add e1 mask
+    all_e2_mask = torch.tensor([f.e2_mask for f in features], dtype=torch.long)  # add e2 mask
 
-    ))
+    if output_mode == "classification":
+        all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
+    elif output_mode == "regression":
+        all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.float)
+
+    dataset = TensorDataset(all_input_ids, all_attention_mask,
+                            all_token_type_ids, all_label_ids, all_e1_mask, all_e2_mask)
+    return dataset
 
 
-def convert_examples_to_features():
-    pass
+def _truncate_seq_pair(tokens_a, tokens_b, max_length):
+    """Truncates a sequence pair in place to the maximum length."""
+
+    # This is a simple heuristic which will always truncate the longer sequence
+    # one token at a time. This makes more sense than truncating an equal percent
+    # of tokens from each, since if one sequence is very short then each token
+    # that's truncated likely contains more information than a longer sequence.
+    while True:
+        total_length = len(tokens_a) + len(tokens_b)
+        if total_length <= max_length:
+            break
+        if len(tokens_a) > len(tokens_b):
+            tokens_a.pop()
+        else:
+            tokens_b.pop()

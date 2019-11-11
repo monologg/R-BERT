@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel, BertConfig
+import torch.nn.functional as F
+from transformers import BertModel, BertConfig, BertPreTrainedModel
 
 from utils import NUM_LABELS
 
@@ -20,12 +21,13 @@ class FCLayer(nn.Module):
         return self.linear(x)
 
 
-class RBERT(nn.Module):
+class RBERT(BertPreTrainedModel):
     def __init__(self, config):
-        super(RBERT, self).__init__()
-
+        # TODO BertConfig 와 일반 Config 구분하기
         self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=NUM_LABELS, finetuning_task=config.task)
-        self.bert = BertModel(config)  # Load pretrained bert
+
+        super(RBERT, self).__init__(self.bert_config)
+        self.bert = BertModel(self.bert_config)  # Load pretrained bert
 
         self.cls_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
         self.e1_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
@@ -48,7 +50,7 @@ class RBERT(nn.Module):
         avg_vector = sum_vector / length_tensor.float()  # broadcasting
         return avg_vector
 
-    def forward(self, input_ids, attention_mask, token_type_ids, e1_mask, e2_mask):
+    def forward(self, input_ids, attention_mask, token_type_ids, labels, e1_mask, e2_mask):
         outputs = self.bert(input_ids, attention_mask=attention_mask,
                             token_type_ids=token_type_ids)  # sequence_output, pooled_output, (hidden_states), (attentions)
         sequence_output = outputs[0]
@@ -67,4 +69,17 @@ class RBERT(nn.Module):
         concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)
         logits = self.label_classifier(concat_h)
 
-        return logits
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+
+        # Softmax
+        if labels is not None:
+            if NUM_LABELS == 1:
+                loss_fct = nn.MSELoss()
+                loss = loss_fct(logits.view(-1), labels.view(-1))
+            else:
+                loss_fct = nn.CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, NUM_LABELS), labels.view(-1))
+
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)
