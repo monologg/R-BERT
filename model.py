@@ -47,7 +47,7 @@ class RBERT(BertPreTrainedModel):
         length_tensor = (e_mask != 0.).sum(dim=1).unsqueeze(1)  # [batch_size, 1]
 
         sum_vector = torch.bmm(e_mask_unsqueeze.float(), hidden_output).squeeze(1)  # [b, 1, j-i+1] * [b, j-i+1, dim] = [b, 1, dim] -> [b, dim]
-        avg_vector = sum_vector / length_tensor.float()  # broadcasting
+        avg_vector = sum_vector.float() / length_tensor.float()  # broadcasting
         return avg_vector
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels, e1_mask, e2_mask):
@@ -63,7 +63,7 @@ class RBERT(BertPreTrainedModel):
         # Dropout -> tanh -> fc_layer
         pooled_output = self.cls_fc_layer(pooled_output)
         e1_h = self.e1_fc_layer(e1_h)
-        e2_h = self.e1_fc_layer(e2_h)
+        e2_h = self.e2_fc_layer(e2_h)
 
         # Concat -> fc_layer
         concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)
