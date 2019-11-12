@@ -58,16 +58,11 @@ class InputFeatures(object):
     """
 
     def __init__(self, input_ids, attention_mask, token_type_ids, label_id,
-                 e11_p, e12_p, e21_p, e22_p,
                  e1_mask, e2_mask):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
         self.label_id = label_id
-        self.e11_p = e11_p
-        self.e12_p = e12_p
-        self.e21_p = e21_p
-        self.e22_p = e22_p
         self.e1_mask = e1_mask
         self.e2_mask = e2_mask
 
@@ -140,8 +135,6 @@ def convert_examples_to_features(examples, max_seq_len,
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d" % (ex_index, len(examples)))
-
-        # example.text_a = example.text_a.replace("[E11]", "#").replace("[E12]", "#").replace("[E21]", "$").replace("[E22]", "$")
 
         tokens_a = tokenizer.tokenize(example.text_a)
 
@@ -228,10 +221,6 @@ def convert_examples_to_features(examples, max_seq_len,
             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
             logger.info("label: %s (id = %d)" % (example.label, label_id))
-            logger.info("e11_p: %s" % e11_p)
-            logger.info("e12_p: %s" % e12_p)
-            logger.info("e21_p: %s" % e21_p)
-            logger.info("e22_p: %s" % e22_p)
             logger.info("e1_mask: %s" % " ".join([str(x) for x in e1_mask]))
             logger.info("e2_mask: %s" % " ".join([str(x) for x in e2_mask]))
 
@@ -240,10 +229,6 @@ def convert_examples_to_features(examples, max_seq_len,
                           attention_mask=attention_mask,
                           token_type_ids=token_type_ids,
                           label_id=label_id,
-                          e11_p=e11_p,
-                          e12_p=e12_p,
-                          e21_p=e21_p,
-                          e22_p=e22_p,
                           e1_mask=e1_mask,
                           e2_mask=e2_mask))
 

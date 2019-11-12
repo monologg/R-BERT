@@ -27,7 +27,7 @@ class RBERT(BertPreTrainedModel):
         self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=NUM_LABELS, finetuning_task=config.task)
 
         super(RBERT, self).__init__(self.bert_config)
-        self.bert = BertModel(self.bert_config)  # Load pretrained bert
+        self.bert = BertModel.from_pretrained(config.pretrained_model_name, config=self.bert_config)  # Load pretrained bert
 
         self.cls_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
         self.e1_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)

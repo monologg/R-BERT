@@ -111,4 +111,5 @@ model/
 process.py
 
 data/cached*
-proposed_answer.txt
+proposed_answers.txt
+result.txt
