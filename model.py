@@ -23,7 +23,6 @@ class FCLayer(nn.Module):
 
 class RBERT(BertPreTrainedModel):
     def __init__(self, config):
-        # TODO BertConfig 와 일반 Config 구분하기
         self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=NUM_LABELS, finetuning_task=config.task)
 
         super(RBERT, self).__init__(self.bert_config)
