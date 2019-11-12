@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from transformers import BertModel, BertConfig, BertPreTrainedModel
-
-from utils import NUM_LABELS
+from transformers import BertModel, BertPreTrainedModel
 
 
 class FCLayer(nn.Module):
@@ -22,16 +19,16 @@ class FCLayer(nn.Module):
 
 
 class RBERT(BertPreTrainedModel):
-    def __init__(self, config):
-        self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=NUM_LABELS, finetuning_task=config.task)
+    def __init__(self, bert_config, cfg):
+        super(RBERT, self).__init__(bert_config)
+        self.bert = BertModel.from_pretrained(cfg.pretrained_model_name, config=bert_config)  # Load pretrained bert
 
-        super(RBERT, self).__init__(self.bert_config)
-        self.bert = BertModel.from_pretrained(config.pretrained_model_name, config=self.bert_config)  # Load pretrained bert
+        self.num_labels = bert_config.num_labels
 
-        self.cls_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
-        self.e1_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
-        self.e2_fc_layer = FCLayer(self.bert_config.hidden_size, self.bert_config.hidden_size, config.dropout_rate)
-        self.label_classifier = FCLayer(self.bert_config.hidden_size * 3, NUM_LABELS, config.dropout_rate, use_activation=False)
+        self.cls_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
+        self.e1_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
+        self.e2_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
+        self.label_classifier = FCLayer(bert_config.hidden_size * 3, bert_config.num_labels, cfg.dropout_rate, use_activation=False)
 
     @staticmethod
     def entity_average(hidden_output, e_mask):
@@ -43,7 +40,7 @@ class RBERT(BertPreTrainedModel):
         :return: [batch_size, dim]
         """
         e_mask_unsqueeze = e_mask.unsqueeze(1)  # [b, 1, j-i+1]
-        length_tensor = (e_mask != 0.).sum(dim=1).unsqueeze(1)  # [batch_size, 1]
+        length_tensor = (e_mask != 0).sum(dim=1).unsqueeze(1)  # [batch_size, 1]
 
         sum_vector = torch.bmm(e_mask_unsqueeze.float(), hidden_output).squeeze(1)  # [b, 1, j-i+1] * [b, j-i+1, dim] = [b, 1, dim] -> [b, dim]
         avg_vector = sum_vector.float() / length_tensor.float()  # broadcasting
@@ -72,12 +69,12 @@ class RBERT(BertPreTrainedModel):
 
         # Softmax
         if labels is not None:
-            if NUM_LABELS == 1:
+            if self.num_labels == 1:
                 loss_fct = nn.MSELoss()
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
                 loss_fct = nn.CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, NUM_LABELS), labels.view(-1))
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
             outputs = (loss,) + outputs
 

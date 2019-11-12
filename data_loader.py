@@ -7,7 +7,7 @@ import logging
 import torch
 from torch.utils.data import TensorDataset
 
-from utils import RELATION_LABELS
+from utils import get_label
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ class SemEvalProcessor(object):
 
     def __init__(self, config):
         self.config = config
+        self.relation_labels = get_label(config)
 
     @classmethod
     def _read_tsv(cls, input_file, quotechar=None):
@@ -95,15 +96,16 @@ class SemEvalProcessor(object):
                 lines.append(line)
             return lines
 
-    @staticmethod
-    def _create_examples(lines, set_type):
+    def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
             text_a = line[1]
+            if not self.config.no_lower_case:
+                text_a = text_a.lower()
             text_b = None
-            label = RELATION_LABELS.index(line[0])
+            label = self.relation_labels.index(line[0])
             if i % 1000 == 0:
                 logger.info(line)
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
@@ -149,7 +151,7 @@ def convert_examples_to_features(examples, max_seq_len,
         tokens_a[e21_p] = "#"
         tokens_a[e22_p] = "#"
 
-        # Add 1 because of [CLS] token
+        # Add 1 because of the [CLS] token
         e11_p += 1
         e12_p += 1
         e21_p += 1
@@ -206,7 +208,6 @@ def convert_examples_to_features(examples, max_seq_len,
         assert len(token_type_ids) == max_seq_len, "Error with input length {} vs {}".format(len(token_type_ids), max_seq_len)
 
         if output_mode == "classification":
-            # label_id = label_map[example.label]
             label_id = int(example.label)
         elif output_mode == "regression":
             label_id = float(example.label)

@@ -5,10 +5,10 @@ from tqdm import tqdm, trange
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from transformers import AdamW, WarmupLinearSchedule
+from transformers import BertConfig, AdamW, WarmupLinearSchedule
 
 from model import RBERT
-from utils import set_seed, write_prediction, compute_metrics
+from utils import set_seed, write_prediction, compute_metrics, get_label
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,17 @@ class Trainer(object):
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
 
-        self.model = RBERT(config)
+        self.label_lst = get_label(config)
+        self.num_labels = len(self.label_lst)
+
+        self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=self.num_labels, finetuning_task=config.task)
+        self.model = RBERT(self.bert_config, config)
 
         # GPU or CPU
         self.device = "cuda" if torch.cuda.is_available() and not config.no_cuda else "cpu"
         self.model.to(self.device)
+
+        self.best_f1_score = 0
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)
@@ -58,7 +64,7 @@ class Trainer(object):
         self.model.zero_grad()
 
         train_iterator = trange(int(self.config.num_train_epochs), desc="Epoch")
-        set_seed(self.config.seed)
+        set_seed(self.config)
 
         for _ in train_iterator:
             epoch_iterator = tqdm(train_dataloader, desc="Iteration")
@@ -70,8 +76,7 @@ class Trainer(object):
                           'token_type_ids': batch[2],
                           'labels': batch[3],
                           'e1_mask': batch[4],
-                          'e2_mask': batch[5],
-                          }
+                          'e2_mask': batch[5]}
                 outputs = self.model(**inputs)
                 loss = outputs[0]
 
@@ -89,34 +94,25 @@ class Trainer(object):
                     self.model.zero_grad()
                     global_step += 1
 
-                    if self.config.save_steps > 0 and global_step % self.config.save_steps == 0:
-                        # Save model checkpoint (Overwrite)
-                        output_dir = os.path.join(self.config.model_dir)
+                    if self.config.evaluate_steps > 0 and global_step % self.config.evaluate_steps == 0:
+                        results = self.evaluate(load_best_model=False)
+                        if results["f1"] > self.best_f1_score:  # Save if it's best result
+                            self.best_f1_score = results["f1"]
+                            self.save_model()
 
-                        if not os.path.exists(output_dir):
-                            os.makedirs(output_dir)
-                        model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
-                        model_to_save.save_pretrained(output_dir)
-                        torch.save(self.config, os.path.join(output_dir, 'training_config.bin'))
-                        logger.info("Saving model checkpoint to %s", output_dir)
-
-                    if self.config.logging_steps > 0 and global_step % self.config.logging_steps == 0:
-                        # Log metrics
-                        if self.config.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
-                            results = self.evaluate()
-
-                if self.config.max_steps > 0 and global_step > self.config.max_steps:
+                if 0 < self.config.max_steps < global_step:
                     epoch_iterator.close()
                     break
 
-            if self.config.max_steps > 0 and global_step > self.config.max_steps:
+            if 0 < self.config.max_steps < global_step:
                 train_iterator.close()
                 break
 
         return global_step, tr_loss / global_step
 
-    def evaluate(self):
-        # self.load_model()  # Load model
+    def evaluate(self, load_best_model=False):
+        if load_best_model:
+            self.load_model()  # Load the best result model
 
         eval_sampler = SequentialSampler(self.test_dataset)
         eval_dataloader = DataLoader(self.test_dataset, sampler=eval_sampler, batch_size=self.config.batch_size)
@@ -163,8 +159,19 @@ class Trainer(object):
         for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
 
-        write_prediction(os.path.join(self.config.eval_dir, "proposed_answers.txt"), preds)
+        write_prediction(self.config, os.path.join(self.config.eval_dir, "proposed_answers.txt"), preds)
         return results
+
+    def save_model(self):
+        # Save model checkpoint (Overwrite)
+        output_dir = os.path.join(self.config.model_dir)
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
+        model_to_save.save_pretrained(output_dir)
+        torch.save(self.config, os.path.join(output_dir, 'training_config.bin'))
+        logger.info("Saving model checkpoint to %s", output_dir)
 
     def load_model(self):
         # Check whether model exists
@@ -172,7 +179,9 @@ class Trainer(object):
             raise Exception("Model doesn't exists! Train first!")
 
         try:
-            self.model = RBERT.from_pretrained(self.config.model_dir)
+            self.bert_config = BertConfig.from_pretrained(self.config.model_dir)
+            logger.info("***** Bert config loaded *****")
+            self.model = RBERT.from_pretrained(self.config.model_dir, config=self.bert_config, cfg=self.config)
             self.model.to(self.device)
             logger.info("***** Model Loaded *****")
         except:

@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 EVAL_DIR = 'eval'
 
@@ -9,7 +8,6 @@ try:
     os.system(cmd)
 except:
     raise Exception("perl is not installed or proposed_answers.txt is missing")
-
 
 with open(os.path.join(EVAL_DIR, 'result.txt'), 'r', encoding='utf-8') as f:
     macro_result = list(f)[-1]

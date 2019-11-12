@@ -29,12 +29,12 @@
 - python>=3.5
 - torch==1.1.0
 - transformers==2.1.1
-- sklearn>=0.20.0
+- scikit-learn>=0.20.0
 
 ## How to run
 
 ```bash
-$ python3 main.py
+$ python3 main.py --do_train --do_eval
 ```
 
 ## Evaluation
