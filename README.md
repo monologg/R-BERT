@@ -10,17 +10,17 @@
 
 ### **Method**
 
-1. Get three vectors from BERT.
+1. **Get three vectors from BERT.**
    - [CLS] token vector
    - averaged entity_1 vector
    - averaged entity_2 vector
-2. Pass each vector to the fully-connected layers.
+2. **Pass each vector to the fully-connected layers.**
    - dropout -> tanh -> fc-layer
-3. Concatenate three vectors.
-4. Pass the concatenated vector to fully-connect layer.
+3. **Concatenate three vectors.**
+4. **Pass the concatenated vector to fully-connect layer.**
    - dropout -> fc-layer
 
-- **Exactly the SAME conditions** as written in paper.
+- **_Exactly the SAME conditions_** as written in paper.
   - **Averaging** on `entity_1` and `entity_2` hidden state vectors, respectively. (including \$, # tokens)
   - **Dropout** and **Tanh** before Fully-connected layer.
 
@@ -37,14 +37,19 @@
 $ python3 main.py --do_train --do_eval
 ```
 
-## Evaluation
+- Save the best model based on the MACRO-averaged f1 score (include `Other` relation)
+- Prediction will be written on `proposed_answers.txt` in `eval` directory.
 
-- Evaluate based on the official evaluation perl script.
-- MACRO-averaged f1 score (except `Other` relation)
+## Evaluation
 
 ```bash
 $ python3 official_eval.py
+# macro-averaged F1 = 88.92%
 ```
+
+- Evaluate based on the official evaluation perl script.
+  - MACRO-averaged f1 score (except `Other` relation)
+- You can see the detailed result on `result.txt` in `eval` directory.
 
 ## References
 
