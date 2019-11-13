@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--pretrained_model_name", default="bert-base-uncased", required=False, help="Pretrained model name")
 
-    parser.add_argument('--seed', type=int, default=123, help="random seed for initialization")
+    parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size for training and evaluation.")
     parser.add_argument("--max_seq_len", default=128, type=int, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--learning_rate", default=2e-5, type=float, help="The initial learning rate for Adam.")
