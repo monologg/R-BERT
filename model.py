@@ -19,16 +19,16 @@ class FCLayer(nn.Module):
 
 
 class RBERT(BertPreTrainedModel):
-    def __init__(self, bert_config, cfg):
+    def __init__(self, bert_config, args):
         super(RBERT, self).__init__(bert_config)
-        self.bert = BertModel.from_pretrained(cfg.pretrained_model_name, config=bert_config)  # Load pretrained bert
+        self.bert = BertModel.from_pretrained(args.pretrained_model_name, config=bert_config)  # Load pretrained bert
 
         self.num_labels = bert_config.num_labels
 
-        self.cls_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
-        self.e1_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
-        self.e2_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, cfg.dropout_rate)
-        self.label_classifier = FCLayer(bert_config.hidden_size * 3, bert_config.num_labels, cfg.dropout_rate, use_activation=False)
+        self.cls_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, args.dropout_rate)
+        self.e1_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, args.dropout_rate)
+        self.e2_fc_layer = FCLayer(bert_config.hidden_size, bert_config.hidden_size, args.dropout_rate)
+        self.label_classifier = FCLayer(bert_config.hidden_size * 3, bert_config.num_labels, args.dropout_rate, use_activation=False)
 
     @staticmethod
     def entity_average(hidden_output, e_mask):

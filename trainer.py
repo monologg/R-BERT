@@ -14,57 +14,57 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer(object):
-    def __init__(self, config, train_dataset=None, test_dataset=None):
-        self.config = config
+    def __init__(self, args, train_dataset=None, test_dataset=None):
+        self.args = args
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
 
-        self.label_lst = get_label(config)
+        self.label_lst = get_label(args)
         self.num_labels = len(self.label_lst)
 
-        self.bert_config = BertConfig.from_pretrained(config.pretrained_model_name, num_labels=self.num_labels, finetuning_task=config.task)
-        self.model = RBERT(self.bert_config, config)
+        self.bert_config = BertConfig.from_pretrained(args.pretrained_model_name, num_labels=self.num_labels, finetuning_task=args.task)
+        self.model = RBERT(self.bert_config, args)
 
         # GPU or CPU
-        self.device = "cuda" if torch.cuda.is_available() and not config.no_cuda else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
         self.model.to(self.device)
 
         self.best_f1_score = 0
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)
-        train_dataloader = DataLoader(self.train_dataset, sampler=train_sampler, batch_size=self.config.batch_size)
+        train_dataloader = DataLoader(self.train_dataset, sampler=train_sampler, batch_size=self.args.batch_size)
 
-        if self.config.max_steps > 0:
-            t_total = self.config.max_steps
-            self.config.num_train_epochs = self.config.max_steps // (len(train_dataloader) // self.config.gradient_accumulation_steps) + 1
+        if self.args.max_steps > 0:
+            t_total = self.args.max_steps
+            self.args.num_train_epochs = self.args.max_steps // (len(train_dataloader) // self.args.gradient_accumulation_steps) + 1
         else:
-            t_total = len(train_dataloader) // self.config.gradient_accumulation_steps * self.config.num_train_epochs
+            t_total = len(train_dataloader) // self.args.gradient_accumulation_steps * self.args.num_train_epochs
 
         # Prepare optimizer and schedule (linear warmup and decay)
         no_decay = ['bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
             {'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
-             'weight_decay': self.config.weight_decay},
+             'weight_decay': self.args.weight_decay},
             {'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=self.config.learning_rate, eps=self.config.adam_epsilon)
-        scheduler = WarmupLinearSchedule(optimizer, warmup_steps=self.config.warmup_steps, t_total=t_total)
+        optimizer = AdamW(optimizer_grouped_parameters, lr=self.args.learning_rate, eps=self.args.adam_epsilon)
+        scheduler = WarmupLinearSchedule(optimizer, warmup_steps=self.args.warmup_steps, t_total=t_total)
 
         # Train!
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(self.train_dataset))
-        logger.info("  Num Epochs = %d", self.config.num_train_epochs)
-        logger.info("  Total train batch size = %d", self.config.batch_size)
-        logger.info("  Gradient Accumulation steps = %d", self.config.gradient_accumulation_steps)
+        logger.info("  Num Epochs = %d", self.args.num_train_epochs)
+        logger.info("  Total train batch size = %d", self.args.batch_size)
+        logger.info("  Gradient Accumulation steps = %d", self.args.gradient_accumulation_steps)
         logger.info("  Total optimization steps = %d", t_total)
 
         global_step = 0
         tr_loss = 0.0
         self.model.zero_grad()
 
-        train_iterator = trange(int(self.config.num_train_epochs), desc="Epoch")
-        set_seed(self.config)
+        train_iterator = trange(int(self.args.num_train_epochs), desc="Epoch")
+        set_seed(self.args)
 
         for _ in train_iterator:
             epoch_iterator = tqdm(train_dataloader, desc="Iteration")
@@ -80,47 +80,44 @@ class Trainer(object):
                 outputs = self.model(**inputs)
                 loss = outputs[0]
 
-                if self.config.gradient_accumulation_steps > 1:
-                    loss = loss / self.config.gradient_accumulation_steps
+                if self.args.gradient_accumulation_steps > 1:
+                    loss = loss / self.args.gradient_accumulation_steps
 
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
 
                 tr_loss += loss.item()
-                if (step + 1) % self.config.gradient_accumulation_steps == 0:
+                if (step + 1) % self.args.gradient_accumulation_steps == 0:
 
                     optimizer.step()
                     scheduler.step()  # Update learning rate schedule
                     self.model.zero_grad()
                     global_step += 1
 
-                    if self.config.evaluate_steps > 0 and global_step % self.config.evaluate_steps == 0:
-                        results = self.evaluate(load_best_model=False)
-                        if results["f1"] > self.best_f1_score:  # Save if it's best result
-                            self.best_f1_score = results["f1"]
-                            self.save_model()
+                    if self.args.logging_steps > 0 and global_step % self.args.logging_steps == 0:
+                        self.evaluate()
 
-                if 0 < self.config.max_steps < global_step:
+                    if self.args.save_steps > 0 and global_step % self.args.save_steps == 0:
+                        self.save_model()
+
+                if 0 < self.args.max_steps < global_step:
                     epoch_iterator.close()
                     break
 
-            if 0 < self.config.max_steps < global_step:
+            if 0 < self.args.max_steps < global_step:
                 train_iterator.close()
                 break
 
         return global_step, tr_loss / global_step
 
-    def evaluate(self, load_best_model=False):
-        if load_best_model:
-            self.load_model()  # Load the best result model
-
+    def evaluate(self):
         eval_sampler = SequentialSampler(self.test_dataset)
-        eval_dataloader = DataLoader(self.test_dataset, sampler=eval_sampler, batch_size=self.config.batch_size)
+        eval_dataloader = DataLoader(self.test_dataset, sampler=eval_sampler, batch_size=self.args.batch_size)
 
         # Eval!
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(self.test_dataset))
-        logger.info("  Batch size = %d", self.config.batch_size)
+        logger.info("  Batch size = %d", self.args.batch_size)
         eval_loss = 0.0
         nb_eval_steps = 0
         preds = None
@@ -159,29 +156,29 @@ class Trainer(object):
         for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
 
-        write_prediction(self.config, os.path.join(self.config.eval_dir, "proposed_answers.txt"), preds)
+        write_prediction(self.args, os.path.join(self.args.eval_dir, "proposed_answers.txt"), preds)
         return results
 
     def save_model(self):
         # Save model checkpoint (Overwrite)
-        output_dir = os.path.join(self.config.model_dir)
+        output_dir = os.path.join(self.args.model_dir)
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
         model_to_save.save_pretrained(output_dir)
-        torch.save(self.config, os.path.join(output_dir, 'training_config.bin'))
+        torch.save(self.args, os.path.join(output_dir, 'training_config.bin'))
         logger.info("Saving model checkpoint to %s", output_dir)
 
     def load_model(self):
         # Check whether model exists
-        if not os.path.exists(self.config.model_dir):
+        if not os.path.exists(self.args.model_dir):
             raise Exception("Model doesn't exists! Train first!")
 
         try:
-            self.bert_config = BertConfig.from_pretrained(self.config.model_dir)
+            self.bert_config = BertConfig.from_pretrained(self.args.model_dir)
             logger.info("***** Bert config loaded *****")
-            self.model = RBERT.from_pretrained(self.config.model_dir, config=self.bert_config, cfg=self.config)
+            self.model = RBERT.from_pretrained(self.args.model_dir, config=self.bert_config, args=self.args)
             self.model.to(self.device)
             logger.info("***** Model Loaded *****")
         except:

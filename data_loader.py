@@ -82,9 +82,9 @@ class InputFeatures(object):
 class SemEvalProcessor(object):
     """Processor for the Semeval data set """
 
-    def __init__(self, config):
-        self.config = config
-        self.relation_labels = get_label(config)
+    def __init__(self, args):
+        self.args = args
+        self.relation_labels = get_label(args)
 
     @classmethod
     def _read_tsv(cls, input_file, quotechar=None):
@@ -102,7 +102,7 @@ class SemEvalProcessor(object):
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
             text_a = line[1]
-            if not self.config.no_lower_case:
+            if not self.args.no_lower_case:
                 text_a = text_a.lower()
             text_b = None
             label = self.relation_labels.index(line[0])
@@ -114,13 +114,13 @@ class SemEvalProcessor(object):
     def get_train_examples(self):
         """See base class."""
         logger.info("LOOKING AT {}".format(
-            os.path.join(self.config.data_dir, self.config.train_file)))
-        return self._create_examples(self._read_tsv(os.path.join(self.config.data_dir, self.config.train_file)), "train")
+            os.path.join(self.args.data_dir, self.args.train_file)))
+        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, self.args.train_file)), "train")
 
     def get_test_examples(self):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(self.config.data_dir, self.config.test_file)), "test")
+            self._read_tsv(os.path.join(self.args.data_dir, self.args.test_file)), "test")
 
 
 def convert_examples_to_features(examples, max_seq_len,
@@ -236,19 +236,19 @@ def convert_examples_to_features(examples, max_seq_len,
     return features
 
 
-def load_and_cache_examples(config, tokenizer, evaluate=False):
-    processor = SemEvalProcessor(config)
+def load_and_cache_examples(args, tokenizer, evaluate=False):
+    processor = SemEvalProcessor(args)
     output_mode = "classification"
 
     # Load data features from cache or dataset file
-    cached_features_file = os.path.join(config.data_dir, 'cached_{}_{}'.format(config.task, 'test' if evaluate else 'train'))
+    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}'.format(args.task, 'test' if evaluate else 'train'))
     if os.path.exists(cached_features_file):
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
     else:
-        logger.info("Creating features from dataset file at %s", config.data_dir)
+        logger.info("Creating features from dataset file at %s", args.data_dir)
         examples = processor.get_test_examples() if evaluate else processor.get_train_examples()
-        features = convert_examples_to_features(examples, config.max_seq_len, tokenizer, output_mode)
+        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, output_mode)
         logger.info("Saving features into cached file %s", cached_features_file)
         torch.save(features, cached_features_file)
 

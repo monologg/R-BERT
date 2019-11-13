@@ -5,18 +5,19 @@ from utils import init_logger, load_tokenizer
 from data_loader import load_and_cache_examples
 
 
-def main(config):
+def main(args):
     init_logger()
-    tokenizer = load_tokenizer(config)
-    train_dataset = load_and_cache_examples(config, tokenizer, evaluate=False)
-    test_dataset = load_and_cache_examples(config, tokenizer, evaluate=True)
-    trainer = Trainer(config, train_dataset, test_dataset)
+    tokenizer = load_tokenizer(args)
+    train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False)
+    test_dataset = load_and_cache_examples(args, tokenizer, evaluate=True)
+    trainer = Trainer(args, train_dataset, test_dataset)
 
-    if config.do_train:
+    if args.do_train:
         trainer.train()
 
-    if config.do_eval:
-        trainer.evaluate(load_best_model=True)
+    if args.do_eval:
+        trainer.load_model()
+        trainer.evaluate()
 
 
 if __name__ == '__main__':
@@ -47,12 +48,13 @@ if __name__ == '__main__':
     parser.add_argument("--warmup_steps", default=0, type=int, help="Linear warmup over warmup_steps.")
     parser.add_argument("--dropout_rate", default=0.1, type=float, help="Dropout for fully-connected layers")
 
-    parser.add_argument('--evaluate_steps', type=int, default=250, help="Evaluate every X updates steps, also saving the best result")
+    parser.add_argument('--logging_steps', type=int, default=400, help="Log every X updates steps.")
+    parser.add_argument('--save_steps', type=int, default=250, help="Save checkpoint every X updates steps.")
 
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
     parser.add_argument("--no_lower_case", action="store_true", help="Whether not to lowercase the text (For cased model)")
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
 
-    config = parser.parse_args()
-    main(config)
+    args = parser.parse_args()
+    main(args)
