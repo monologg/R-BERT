@@ -23,6 +23,7 @@
 - **_Exactly the SAME conditions_** as written in paper.
   - **Averaging** on `entity_1` and `entity_2` hidden state vectors, respectively. (including \$, # tokens)
   - **Dropout** and **Tanh** before Fully-connected layer.
+  - **No [SEP] token** at the end of sequence. (If you want add [SEP] token, give `--add_sep_token` option)
 
 ## Dependencies
 

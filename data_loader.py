@@ -136,11 +136,11 @@ def convert_examples_to_features(examples, max_seq_len,
                                  pad_token=0,
                                  pad_token_segment_id=0,
                                  sequence_a_segment_id=0,
-                                 sequence_b_segment_id=1,
+                                 add_sep_token=False,
                                  mask_padding_with_zero=True):
     features = []
     for (ex_index, example) in enumerate(examples):
-        if ex_index % 10000 == 0:
+        if ex_index % 5000 == 0:
             logger.info("Writing example %d of %d" % (ex_index, len(examples)))
 
         tokens_a = tokenizer.tokenize(example.text_a)
@@ -162,27 +162,19 @@ def convert_examples_to_features(examples, max_seq_len,
         e21_p += 1
         e22_p += 1
 
-        tokens_b = None
-        if example.text_b:
-            tokens_b = tokenizer.tokenize(example.text_b)
-            # Modifies `tokens_a` and `tokens_b` in place so that the total
-            # length is less than the specified length.
-            # Account for [CLS], [SEP], [SEP] with "- 3". " -4" for RoBERTa.
-            special_tokens_count = 3
-            _truncate_seq_pair(tokens_a, tokens_b,
-                               max_seq_len - special_tokens_count)
-        else:
-            # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
+        # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
+        if add_sep_token:
             special_tokens_count = 2
-            if len(tokens_a) > max_seq_len - special_tokens_count:
-                tokens_a = tokens_a[:(max_seq_len - special_tokens_count)]
+        else:
+            special_tokens_count = 1
+        if len(tokens_a) > max_seq_len - special_tokens_count:
+            tokens_a = tokens_a[:(max_seq_len - special_tokens_count)]
 
-        tokens = tokens_a + [sep_token]
+        tokens = tokens_a
+        if add_sep_token:
+            tokens += [sep_token]
+
         token_type_ids = [sequence_a_segment_id] * len(tokens)
-
-        if tokens_b:
-            tokens += tokens_b + [sep_token]
-            token_type_ids += [sequence_b_segment_id] * (len(tokens_b) + 1)
 
         tokens = [cls_token] + tokens
         token_type_ids = [cls_token_segment_id] + token_type_ids
@@ -253,7 +245,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False):
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
         examples = processor.get_test_examples() if evaluate else processor.get_train_examples()
-        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, output_mode)
+        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, output_mode, add_sep_token=args.add_sep_token)
         logger.info("Saving features into cached file %s", cached_features_file)
         torch.save(features, cached_features_file)
 

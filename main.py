@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--pretrained_model_name", default="bert-base-uncased", required=False, help="Pretrained model name")
 
-    parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")
+    parser.add_argument('--seed', type=int, default=123, help="random seed for initialization")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size for training and evaluation.")
     parser.add_argument("--max_seq_len", default=128, type=int, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--learning_rate", default=2e-5, type=float, help="The initial learning rate for Adam.")
@@ -55,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
     parser.add_argument("--no_lower_case", action="store_true", help="Whether not to lowercase the text (For cased model)")
     parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
+    parser.add_argument("--add_sep_token", action="store_true", help="Add [SEP] token at the end of the sentence")
 
     args = parser.parse_args()
     main(args)
