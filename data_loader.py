@@ -123,6 +123,11 @@ class SemEvalProcessor(object):
             self._read_tsv(os.path.join(self.args.data_dir, self.args.test_file)), "test")
 
 
+processors = {
+    "semeval": SemEvalProcessor
+}
+
+
 def convert_examples_to_features(examples, max_seq_len,
                                  tokenizer, output_mode=None,
                                  cls_token='[CLS]',
@@ -237,7 +242,7 @@ def convert_examples_to_features(examples, max_seq_len,
 
 
 def load_and_cache_examples(args, tokenizer, evaluate=False):
-    processor = SemEvalProcessor(args)
+    processor = processors[args.task](args)
     output_mode = "classification"
 
     # Load data features from cache or dataset file

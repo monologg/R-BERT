@@ -37,7 +37,6 @@
 $ python3 main.py --do_train --do_eval
 ```
 
-- Save the best model based on the MACRO-averaged f1 score (include `Other` relation)
 - Prediction will be written on `proposed_answers.txt` in `eval` directory.
 
 ## Evaluation
