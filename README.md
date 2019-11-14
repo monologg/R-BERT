@@ -57,4 +57,5 @@ $ python3 official_eval.py
 - [Semeval 2010 Task 8 Dataset](https://drive.google.com/file/d/0B_jQiLugGTAkMDQ5ZjZiMTUtMzQ1Yy00YWNmLWJlZDYtOWY1ZDMwY2U4YjFk/view?sort=name&layout=list&num=50)
 - [Semeval 2010 Task 8 Paper](https://www.aclweb.org/anthology/S10-1006.pdf)
 - [NLP-progress Relation Extraction](http://nlpprogress.com/english/relationship_extraction.html)
+- [Huggingface Transformers](https://github.com/huggingface/transformers)
 - [https://github.com/wang-h/bert-relation-classification](https://github.com/wang-h/bert-relation-classification)
