@@ -39,8 +39,9 @@ $ python3 main.py --do_train --do_eval
 ```
 
 - Prediction will be written on `proposed_answers.txt` in `eval` directory.
+- F1 Score shown during the training is **NOT OFFICIAL SCORE** of _SemEval 2010 Task 8_.
 
-## Evaluation
+## Official Evaluation
 
 ```bash
 $ python3 official_eval.py
