@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer(object):
-    def __init__(self, args, train_dataset=None, test_dataset=None):
+    def __init__(self, args, train_dataset=None, dev_dataset=None, test_dataset=None):
         self.args = args
         self.train_dataset = train_dataset
+        self.dev_dataset = dev_dataset
         self.test_dataset = test_dataset
 
         self.label_lst = get_label(args)
@@ -93,7 +94,7 @@ class Trainer(object):
                     global_step += 1
 
                     if self.args.logging_steps > 0 and global_step % self.args.logging_steps == 0:
-                        self.evaluate()
+                        self.evaluate('test')
 
                     if self.args.save_steps > 0 and global_step % self.args.save_steps == 0:
                         self.save_model()
@@ -108,22 +109,30 @@ class Trainer(object):
 
         return global_step, tr_loss / global_step
 
-    def evaluate(self):
+    def evaluate(self, mode):
         # We use test dataset because semeval doesn't have dev dataset
-        eval_sampler = SequentialSampler(self.test_dataset)
-        eval_dataloader = DataLoader(self.test_dataset, sampler=eval_sampler, batch_size=self.args.batch_size)
+        if mode == 'test':
+            dataset = self.test_dataset
+        elif mode == 'dev':
+            dataset = self.dev_dataset
+        else:
+            raise Exception("Only dev and test dataset available")
+        
+        eval_sampler = SequentialSampler(dataset)
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=self.args.batch_size)
 
         # Eval!
         logger.info("***** Running evaluation *****")
-        logger.info("  Num examples = %d", len(self.test_dataset))
+        logger.info("  Num examples = %d", len(dataset))
         logger.info("  Batch size = %d", self.args.batch_size)
         eval_loss = 0.0
         nb_eval_steps = 0
         preds = None
         out_label_ids = None
 
+        self.model.eval()
+
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
-            self.model.eval()
             batch = tuple(t.to(self.device) for t in batch)
             with torch.no_grad():
                 inputs = {'input_ids': batch[0],
@@ -153,7 +162,7 @@ class Trainer(object):
         preds = np.argmax(preds, axis=1)
         result = compute_metrics(preds, out_label_ids)
         results.update(result)
-        
+
         logger.info("***** Eval results *****")
         for key in sorted(results.keys()):
             logger.info("  %s = %s", key, str(results[key]))

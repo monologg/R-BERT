@@ -10,14 +10,14 @@ def main(args):
     tokenizer = load_tokenizer(args)
     train_dataset = load_and_cache_examples(args, tokenizer, mode="train")
     test_dataset = load_and_cache_examples(args, tokenizer, mode="test")
-    trainer = Trainer(args, train_dataset, test_dataset)
+    trainer = Trainer(args, train_dataset=train_dataset, test_dataset=test_dataset)
 
     if args.do_train:
         trainer.train()
 
     if args.do_eval:
         trainer.load_model()
-        trainer.evaluate()
+        trainer.evaluate('test')
 
 
 if __name__ == '__main__':
