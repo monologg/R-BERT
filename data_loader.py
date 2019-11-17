@@ -107,16 +107,14 @@ class SemEvalProcessor(object):
             examples.append(InputExample(guid=guid, text_a=text_a, label=label))
         return examples
 
-    def get_train_examples(self):
-        """See base class."""
+    def get_examples(self, mode):
+        """
+        Args:
+            mode: train, dev, test
+        """
         logger.info("LOOKING AT {}".format(
             os.path.join(self.args.data_dir, self.args.train_file)))
-        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, self.args.train_file)), "train")
-
-    def get_test_examples(self):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(self.args.data_dir, self.args.test_file)), "test")
+        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, self.args.train_file)), mode)
 
 
 processors = {
@@ -124,8 +122,7 @@ processors = {
 }
 
 
-def convert_examples_to_features(examples, max_seq_len,
-                                 tokenizer, output_mode=None,
+def convert_examples_to_features(examples, max_seq_len, tokenizer,
                                  cls_token='[CLS]',
                                  cls_token_segment_id=0,
                                  sep_token='[SEP]',
@@ -200,12 +197,7 @@ def convert_examples_to_features(examples, max_seq_len,
         assert len(attention_mask) == max_seq_len, "Error with attention mask length {} vs {}".format(len(attention_mask), max_seq_len)
         assert len(token_type_ids) == max_seq_len, "Error with token type length {} vs {}".format(len(token_type_ids), max_seq_len)
 
-        if output_mode == "classification":
-            label_id = int(example.label)
-        elif output_mode == "regression":
-            label_id = float(example.label)
-        else:
-            raise KeyError(output_mode)
+        label_id = int(example.label)
 
         if ex_index < 5:
             logger.info("*** Example ***")
@@ -229,19 +221,26 @@ def convert_examples_to_features(examples, max_seq_len,
     return features
 
 
-def load_and_cache_examples(args, tokenizer, evaluate=False):
+def load_and_cache_examples(args, tokenizer, mode):
     processor = processors[args.task](args)
-    output_mode = "classification"
 
     # Load data features from cache or dataset file
-    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}'.format(args.task, 'test' if evaluate else 'train'))
+    cached_features_file = os.path.join(args.data_dir, 'cached_{}_{}'.format(args.task, mode))
     if os.path.exists(cached_features_file):
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
-        examples = processor.get_test_examples() if evaluate else processor.get_train_examples()
-        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, output_mode, add_sep_token=args.add_sep_token)
+        if mode == "train":
+            examples = processor.get_examples("train")
+        elif mode == "dev":
+            examples = processor.get_examples("dev")
+        elif mode == "test":
+            examples = processor.get_examples("test")
+        else:
+            raise Exception("For mode, Only train, dev, test is available")
+
+        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, add_sep_token=args.add_sep_token)
         logger.info("Saving features into cached file %s", cached_features_file)
         torch.save(features, cached_features_file)
 
@@ -252,28 +251,8 @@ def load_and_cache_examples(args, tokenizer, evaluate=False):
     all_e1_mask = torch.tensor([f.e1_mask for f in features], dtype=torch.long)  # add e1 mask
     all_e2_mask = torch.tensor([f.e2_mask for f in features], dtype=torch.long)  # add e2 mask
 
-    if output_mode == "classification":
-        all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
-    elif output_mode == "regression":
-        all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.float)
+    all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
 
     dataset = TensorDataset(all_input_ids, all_attention_mask,
                             all_token_type_ids, all_label_ids, all_e1_mask, all_e2_mask)
     return dataset
-
-
-def _truncate_seq_pair(tokens_a, tokens_b, max_length):
-    """Truncates a sequence pair in place to the maximum length."""
-
-    # This is a simple heuristic which will always truncate the longer sequence
-    # one token at a time. This makes more sense than truncating an equal percent
-    # of tokens from each, since if one sequence is very short then each token
-    # that's truncated likely contains more information than a longer sequence.
-    while True:
-        total_length = len(tokens_a) + len(tokens_b)
-        if total_length <= max_length:
-            break
-        if len(tokens_a) > len(tokens_b):
-            tokens_a.pop()
-        else:
-            tokens_b.pop()

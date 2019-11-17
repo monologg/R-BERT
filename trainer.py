@@ -109,6 +109,7 @@ class Trainer(object):
         return global_step, tr_loss / global_step
 
     def evaluate(self):
+        # We use test dataset because semeval doesn't have dev dataset
         eval_sampler = SequentialSampler(self.test_dataset)
         eval_dataloader = DataLoader(self.test_dataset, sampler=eval_sampler, batch_size=self.args.batch_size)
 

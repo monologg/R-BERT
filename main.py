@@ -8,8 +8,8 @@ from data_loader import load_and_cache_examples
 def main(args):
     init_logger()
     tokenizer = load_tokenizer(args)
-    train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False)
-    test_dataset = load_and_cache_examples(args, tokenizer, evaluate=True)
+    train_dataset = load_and_cache_examples(args, tokenizer, mode="train")
+    test_dataset = load_and_cache_examples(args, tokenizer, mode="test")
     trainer = Trainer(args, train_dataset, test_dataset)
 
     if args.do_train:
