@@ -20,16 +20,13 @@ class InputExample(object):
         guid: Unique id for the example.
         text_a: string. The untokenized text of the first sequence. For single
         sequence tasks, only this sequence must be specified.
-        text_b: (Optional) string. The untokenized text of the second sequence.
-        Only must be specified for sequence pair tasks.
         label: (Optional) string. The label of the example. This should be
         specified for train and dev examples, but not for test examples.
     """
 
-    def __init__(self, guid, text_a, text_b=None, label=None):
+    def __init__(self, guid, text_a, label):
         self.guid = guid
         self.text_a = text_a
-        self.text_b = text_b
         self.label = label
 
     def __repr__(self):
@@ -104,11 +101,10 @@ class SemEvalProcessor(object):
             text_a = line[1]
             if not self.args.no_lower_case:
                 text_a = text_a.lower()
-            text_b = None
             label = self.relation_labels.index(line[0])
             if i % 1000 == 0:
                 logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, label=label))
         return examples
 
     def get_train_examples(self):

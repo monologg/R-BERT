@@ -84,10 +84,10 @@ class Trainer(object):
                     loss = loss / self.args.gradient_accumulation_steps
 
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
 
                 tr_loss += loss.item()
                 if (step + 1) % self.args.gradient_accumulation_steps == 0:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
 
                     optimizer.step()
                     scheduler.step()  # Update learning rate schedule
