@@ -120,7 +120,6 @@ class Trainer(object):
         nb_eval_steps = 0
         preds = None
         out_label_ids = None
-        results = {}
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             self.model.eval()
@@ -147,12 +146,16 @@ class Trainer(object):
                     out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
 
         eval_loss = eval_loss / nb_eval_steps
+        results = {
+            "loss": eval_loss
+        }
         preds = np.argmax(preds, axis=1)
         result = compute_metrics(preds, out_label_ids)
         results.update(result)
+        
         logger.info("***** Eval results *****")
-        for key in sorted(result.keys()):
-            logger.info("  %s = %s", key, str(result[key]))
+        for key in sorted(results.keys()):
+            logger.info("  %s = %s", key, str(results[key]))
 
         write_prediction(self.args, os.path.join(self.args.eval_dir, "proposed_answers.txt"), preds)
         return results
