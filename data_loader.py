@@ -197,8 +197,8 @@ def convert_examples_to_features(examples, max_seq_len,
             e2_mask[i] = 1
 
         assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(len(input_ids), max_seq_len)
-        assert len(attention_mask) == max_seq_len, "Error with input length {} vs {}".format(len(attention_mask), max_seq_len)
-        assert len(token_type_ids) == max_seq_len, "Error with input length {} vs {}".format(len(token_type_ids), max_seq_len)
+        assert len(attention_mask) == max_seq_len, "Error with attention mask length {} vs {}".format(len(attention_mask), max_seq_len)
+        assert len(token_type_ids) == max_seq_len, "Error with token type length {} vs {}".format(len(token_type_ids), max_seq_len)
 
         if output_mode == "classification":
             label_id = int(example.label)
