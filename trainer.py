@@ -122,7 +122,7 @@ class Trainer(object):
         eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=self.args.batch_size)
 
         # Eval!
-        logger.info("***** Running evaluation *****")
+        logger.info("***** Running evaluation on %s dataset *****", mode)
         logger.info("  Num examples = %d", len(dataset))
         logger.info("  Batch size = %d", self.args.batch_size)
         eval_loss = 0.0
