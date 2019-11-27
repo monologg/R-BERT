@@ -112,9 +112,16 @@ class SemEvalProcessor(object):
         Args:
             mode: train, dev, test
         """
-        logger.info("LOOKING AT {}".format(
-            os.path.join(self.args.data_dir, self.args.train_file)))
-        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, self.args.train_file)), mode)
+        file_to_read = None
+        if mode == 'train':
+            file_to_read = self.args.train_file
+        elif mode == 'dev':
+            file_to_read = self.args.dev_file
+        elif mode == 'test':
+            file_to_read = self.args.test_file
+            
+        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read)))
+        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, file_to_read)), mode)
 
 
 processors = {
