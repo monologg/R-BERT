@@ -99,8 +99,6 @@ class SemEvalProcessor(object):
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
             text_a = line[1]
-            if not self.args.no_lower_case:
-                text_a = text_a.lower()
             label = self.relation_labels.index(line[0])
             if i % 1000 == 0:
                 logger.info(line)
