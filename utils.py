@@ -4,9 +4,9 @@ import logging
 
 import torch
 import numpy as np
-from sklearn.metrics import f1_score
 from transformers import BertTokenizer, BertConfig, AlbertConfig, AlbertTokenizer, RobertaConfig, RobertaTokenizer
 
+from official_eval import official_f1
 from model import RBERT
 
 MODEL_CLASSES = {
@@ -71,8 +71,7 @@ def simple_accuracy(preds, labels):
 
 def acc_and_f1(preds, labels, average='macro'):
     acc = simple_accuracy(preds, labels)
-    f1 = f1_score(y_true=labels, y_pred=preds, average=average)
     return {
         "acc": acc,
-        "f1": f1,
+        "f1": official_f1(),
     }

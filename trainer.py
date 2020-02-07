@@ -161,6 +161,8 @@ class Trainer(object):
             "loss": eval_loss
         }
         preds = np.argmax(preds, axis=1)
+        write_prediction(self.args, os.path.join(self.args.eval_dir, "proposed_answers.txt"), preds)
+
         result = compute_metrics(preds, out_label_ids)
         results.update(result)
 
@@ -168,7 +170,6 @@ class Trainer(object):
         for key in sorted(results.keys()):
             logger.info("  %s = %s", key, str(results[key]))
 
-        write_prediction(self.args, os.path.join(self.args.eval_dir, "proposed_answers.txt"), preds)
         return results
 
     def save_model(self):

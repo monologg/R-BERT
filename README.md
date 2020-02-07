@@ -29,10 +29,10 @@
 
 ## Dependencies
 
+- perl (For evaluating official f1 score)
 - python>=3.5
 - torch==1.1.0
 - transformers==2.1.1
-- scikit-learn>=0.20.0
 
 ## How to run
 
@@ -41,7 +41,6 @@ $ python3 main.py --do_train --do_eval
 ```
 
 - Prediction will be written on `proposed_answers.txt` in `eval` directory.
-- F1 Score shown during the training is **NOT OFFICIAL SCORE** of _SemEval 2010 Task 8_.
 
 ## Official Evaluation
 
