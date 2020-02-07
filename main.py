@@ -1,7 +1,7 @@
 import argparse
 
 from trainer import Trainer
-from utils import init_logger, load_tokenizer
+from utils import init_logger, load_tokenizer, MODEL_CLASSES, MODEL_PATH_MAP
 from data_loader import load_and_cache_examples
 
 
@@ -39,11 +39,11 @@ if __name__ == '__main__':
     parser.add_argument("--test_file", default="test.tsv", type=str, help="Test file")
     parser.add_argument("--label_file", default="label.txt", type=str, help="Label file")
 
-    parser.add_argument("--pretrained_model_name", default="bert-base-uncased", required=False, help="Pretrained model name")
+    parser.add_argument("--model_type", default="bert", type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
 
     parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size for training and evaluation.")
-    parser.add_argument("--max_seq_len", default=128, type=int, help="The maximum total input sequence length after tokenization.")
+    parser.add_argument("--max_seq_len", default=384, type=int, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--learning_rate", default=2e-5, type=float, help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs", default=5.0, type=float, help="Total number of training epochs to perform.")
     parser.add_argument("--weight_decay", default=0.0, type=float, help="Weight decay if we apply some.")
@@ -64,4 +64,6 @@ if __name__ == '__main__':
     parser.add_argument("--add_sep_token", action="store_true", help="Add [SEP] token at the end of the sentence")
 
     args = parser.parse_args()
+
+    args.model_name_or_path = MODEL_PATH_MAP[args.model_type]
     main(args)

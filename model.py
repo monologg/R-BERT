@@ -1,6 +1,13 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel, BertPreTrainedModel
+from transformers import BertModel, BertPreTrainedModel, RobertaModel, AlbertModel
+
+
+PRETRAINED_MODEL_MAP = {
+    'bert': BertModel,
+    'roberta': RobertaModel,
+    'albert': AlbertModel
+}
 
 
 class FCLayer(nn.Module):
@@ -21,7 +28,7 @@ class FCLayer(nn.Module):
 class RBERT(BertPreTrainedModel):
     def __init__(self, bert_config, args):
         super(RBERT, self).__init__(bert_config)
-        self.bert = BertModel.from_pretrained(args.pretrained_model_name, config=bert_config)  # Load pretrained bert
+        self.bert = PRETRAINED_MODEL_MAP[args.model_type].from_pretrained(args.pretrained_model_name, config=bert_config)  # Load pretrained bert
 
         self.num_labels = bert_config.num_labels
 

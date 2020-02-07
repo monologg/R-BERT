@@ -5,7 +5,21 @@ import logging
 import torch
 import numpy as np
 from sklearn.metrics import f1_score
-from transformers.tokenization_bert import BertTokenizer
+from transformers import BertTokenizer, BertConfig, AlbertConfig, AlbertTokenizer, RobertaConfig, RobertaTokenizer
+
+from model import RBERT
+
+MODEL_CLASSES = {
+    'bert': (BertConfig, RBERT, BertTokenizer),
+    'roberta': (RobertaConfig, RBERT, RobertaTokenizer),
+    'albert': (AlbertConfig, RBERT, AlbertTokenizer)
+}
+
+MODEL_PATH_MAP = {
+    'bert': 'bert-base-uncased',
+    'roberta': 'roberta-base',
+    'albert': 'albert-xxlarge-v1'
+}
 
 ADDITIONAL_SPECIAL_TOKENS = ["<e1>", "</e1>", "<e2>", "</e2>"]
 
@@ -15,7 +29,7 @@ def get_label(args):
 
 
 def load_tokenizer(args):
-    tokenizer = BertTokenizer.from_pretrained(args.pretrained_model_name)
+    tokenizer = MODEL_CLASSES[args.model_type][2].from_pretrained(args.model_name_or_path)
     tokenizer.add_special_tokens({"additional_special_tokens": ADDITIONAL_SPECIAL_TOKENS})
     return tokenizer
 

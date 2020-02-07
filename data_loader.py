@@ -235,7 +235,7 @@ def load_and_cache_examples(args, tokenizer, mode):
         'cached_{}_{}_{}_{}'.format(
             mode,
             args.task,
-            list(filter(None, args.pretrained_model_name.split("/"))).pop(),
+            list(filter(None, args.model_name_or_path.split("/"))).pop(),
             args.max_seq_len
         )
     )
