@@ -14,6 +14,8 @@ def official_f1():
     with open(os.path.join(EVAL_DIR, 'result.txt'), 'r', encoding='utf-8') as f:
         macro_result = list(f)[-1]
         macro_result = macro_result.split(":")[1].replace(">>>", "").strip()
+        macro_result = macro_result.split("=")[1].strip().replace("%", "")
+        macro_result = float(macro_result) / 100
 
     return macro_result
 
