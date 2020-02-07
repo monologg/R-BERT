@@ -21,4 +21,4 @@ def official_f1():
 
 
 if __name__ == "__main__":
-    print(official_f1())
+    print("macro-averaged F1 = {}%".format(official_f1() * 100))
