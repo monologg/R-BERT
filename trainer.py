@@ -168,7 +168,7 @@ class Trainer(object):
 
         logger.info("***** Eval results *****")
         for key in sorted(results.keys()):
-            logger.info("  {} = {:.2f}".format(key, results[key]))
+            logger.info("  {} = {:.4f}".format(key, results[key]))
 
         return results
 
