@@ -10,6 +10,13 @@ from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup
 from model import RBERT
 from utils import set_seed, write_prediction, compute_metrics, get_label, MODEL_CLASSES
 
+import torch_xla
+import torch_xla.core.xla_model as xm
+import torch_xla.debug.metrics as met
+import torch_xla.distributed.parallel_loader as pl
+import torch_xla.distributed.xla_multiprocessing as xmp
+import torch_xla.utils.utils as xu
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +35,9 @@ class Trainer(object):
         self.model = self.model_class(self.bert_config, args)
 
         # GPU or CPU
-        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
-        self.model.to(self.device)
+        # self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        # self.model.to(self.device)
+        self.device = xm.xla_device()
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)
@@ -89,7 +97,8 @@ class Trainer(object):
                 if (step + 1) % self.args.gradient_accumulation_steps == 0:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
 
-                    optimizer.step()
+                    # optimizer.step()
+                    xm.optimizer_step(optimizer, barrier=True)
                     scheduler.step()  # Update learning rate schedule
                     self.model.zero_grad()
                     global_step += 1
