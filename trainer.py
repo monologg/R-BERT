@@ -36,8 +36,8 @@ class Trainer(object):
 
         # GPU or CPU
         # self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
-        # self.model.to(self.device)
         self.device = xm.xla_device()
+        self.model.to(self.device)
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)

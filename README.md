@@ -4,6 +4,8 @@
 
 (Unofficial) Pytorch implementation of `R-BERT`: [Enriching Pre-trained Language Model with Entity Information for Relation Classification](https://arxiv.org/abs/1905.08284)
 
+**February 8th, 2020 - Update**: Add RoBERTa and ALBERT result
+
 ## Model Architecture
 
 <p float="left" align="center">
@@ -52,6 +54,14 @@ $ python3 official_eval.py
 - Evaluate based on the official evaluation perl script.
   - MACRO-averaged f1 score (except `Other` relation)
 - You can see the detailed result on `result.txt` in `eval` directory.
+
+## Results
+
+|         | Macro-F1 (%) |
+| ------- | ------------ |
+| BERT    | 88.25        |
+| RoBERTa |              |
+| ALBERT  |              |
 
 ## References
 
