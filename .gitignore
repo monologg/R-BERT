@@ -113,3 +113,6 @@ process.py
 data/cached*
 proposed_answers.txt
 result.txt
+
+.DS_Store
+sample_pred_out.txt

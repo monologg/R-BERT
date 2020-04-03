@@ -31,8 +31,8 @@
 
 - perl (For evaluating official f1 score)
 - python>=3.5
-- torch>=1.1.0
-- transformers>=2.3.0
+- torch==1.4.0
+- transformers==2.7.0
 
 ## How to run
 
@@ -52,6 +52,12 @@ $ python3 official_eval.py
 - Evaluate based on the official evaluation perl script.
   - MACRO-averaged f1 score (except `Other` relation)
 - You can see the detailed result on `result.txt` in `eval` directory.
+
+## Prediction
+
+```bash
+$ python3 predict.py --input_file {INPUT_FILE_PATH} --output_file {OUTPUT_FILE_PATH} --model_dir {SAVED_CKPT_PATH}
+```
 
 ## References
 
