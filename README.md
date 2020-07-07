@@ -31,8 +31,8 @@
 
 - perl (For evaluating official f1 score)
 - python>=3.5
-- torch==1.4.0
-- transformers==2.7.0
+- torch==1.5.0
+- transformers==2.11.0
 
 ## How to run
 
