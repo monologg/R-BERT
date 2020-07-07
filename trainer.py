@@ -193,7 +193,11 @@ class Trainer(object):
             raise Exception("Model doesn't exists! Train first!")
 
         try:
-            self.model = self.model_class.from_pretrained(self.args.model_dir)
+            self.args = torch.load(os.path.join(self.args.model_dir, 'training_args.bin'))
+            self.config = self.config_class.from_pretrained(self.args.model_dir)
+            self.model = self.model_class.from_pretrained(self.args.model_dir,
+                                                          config=self.config,
+                                                          args=self.args)
             self.model.to(self.device)
             logger.info("***** Model Loaded *****")
         except:
