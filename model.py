@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel, BertPreTrainedModel, RobertaModel, AlbertModel
-
+from transformers import (AlbertModel, BertModel, BertPreTrainedModel,
+                          RobertaModel)
 
 PRETRAINED_MODEL_MAP = {
     'bert': BertModel,

@@ -1,13 +1,13 @@
-import os
-import logging
 import argparse
-from tqdm import tqdm, trange
+import logging
+import os
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, SequentialSampler
+from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
+from tqdm import tqdm, trange
 
-from utils import init_logger, load_tokenizer, MODEL_CLASSES, get_label
+from utils import MODEL_CLASSES, get_label, init_logger, load_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def get_device(pred_config):
 
 
 def get_args(pred_config):
-    return torch.load(os.path.join(pred_config.model_dir, 'training_args.bin'))
+    return torch.load(os.path.join(pred_config.model_dir, "training_args.bin"))
 
 
 def load_model(pred_config, args, device):
@@ -27,9 +27,9 @@ def load_model(pred_config, args, device):
 
     try:
         config = MODEL_CLASSES[args.model_type][0].from_pretrained(args.model_dir)
-        model = MODEL_CLASSES[args.model_type][1].from_pretrained(args.model_dir,
-                                                                  config=config,
-                                                                  args=args)
+        model = MODEL_CLASSES[args.model_type][1].from_pretrained(
+            args.model_dir, config=config, args=args
+        )
         model.to(device)
         model.eval()
         logger.info("***** Model Loaded *****")
@@ -39,12 +39,14 @@ def load_model(pred_config, args, device):
     return model
 
 
-def convert_input_file_to_tensor_dataset(pred_config,
-                                         args,
-                                         cls_token_segment_id=0,
-                                         pad_token_segment_id=0,
-                                         sequence_a_segment_id=0,
-                                         mask_padding_with_zero=True):
+def convert_input_file_to_tensor_dataset(
+    pred_config,
+    args,
+    cls_token_segment_id=0,
+    pad_token_segment_id=0,
+    sequence_a_segment_id=0,
+    mask_padding_with_zero=True,
+):
     tokenizer = load_tokenizer(args)
 
     # Setting based on the current model type
@@ -86,7 +88,7 @@ def convert_input_file_to_tensor_dataset(pred_config,
             else:
                 special_tokens_count = 1
             if len(tokens) > args.max_seq_len - special_tokens_count:
-                tokens = tokens[:(args.max_seq_len - special_tokens_count)]
+                tokens = tokens[: (args.max_seq_len - special_tokens_count)]
 
             # Add [SEP] token
             if args.add_sep_token:
@@ -105,7 +107,9 @@ def convert_input_file_to_tensor_dataset(pred_config,
             # Zero-pad up to the sequence length.
             padding_length = args.max_seq_len - len(input_ids)
             input_ids = input_ids + ([pad_token_id] * padding_length)
-            attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
+            attention_mask = attention_mask + (
+                [0 if mask_padding_with_zero else 1] * padding_length
+            )
             token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
 
             # e1 mask, e2 mask
@@ -130,7 +134,9 @@ def convert_input_file_to_tensor_dataset(pred_config,
     all_e1_mask = torch.tensor(all_e1_mask, dtype=torch.long)
     all_e2_mask = torch.tensor(all_e2_mask, dtype=torch.long)
 
-    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_e1_mask, all_e2_mask)
+    dataset = TensorDataset(
+        all_input_ids, all_attention_mask, all_token_type_ids, all_e1_mask, all_e2_mask
+    )
 
     return dataset
 
@@ -147,19 +153,23 @@ def predict(pred_config):
 
     # Predict
     sampler = SequentialSampler(dataset)
-    data_loader = DataLoader(dataset, sampler=sampler, batch_size=pred_config.batch_size)
+    data_loader = DataLoader(
+        dataset, sampler=sampler, batch_size=pred_config.batch_size
+    )
 
     preds = None
 
     for batch in tqdm(data_loader, desc="Predicting"):
         batch = tuple(t.to(device) for t in batch)
         with torch.no_grad():
-            inputs = {"input_ids": batch[0],
-                      "attention_mask": batch[1],
-                      "token_type_ids": batch[2],
-                      "labels": None,
-                      "e1_mask": batch[3],
-                      "e2_mask": batch[4]}
+            inputs = {
+                "input_ids": batch[0],
+                "attention_mask": batch[1],
+                "token_type_ids": batch[2],
+                "labels": None,
+                "e1_mask": batch[3],
+                "e2_mask": batch[4],
+            }
             outputs = model(**inputs)
             logits = outputs[0]
 
@@ -183,12 +193,28 @@ if __name__ == "__main__":
     init_logger()
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--input_file", default="sample_pred_in.txt", type=str, help="Input file for prediction")
-    parser.add_argument("--output_file", default="sample_pred_out.txt", type=str, help="Output file for prediction")
-    parser.add_argument("--model_dir", default="./model", type=str, help="Path to save, load model")
+    parser.add_argument(
+        "--input_file",
+        default="sample_pred_in.txt",
+        type=str,
+        help="Input file for prediction",
+    )
+    parser.add_argument(
+        "--output_file",
+        default="sample_pred_out.txt",
+        type=str,
+        help="Output file for prediction",
+    )
+    parser.add_argument(
+        "--model_dir", default="./model", type=str, help="Path to save, load model"
+    )
 
-    parser.add_argument("--batch_size", default=32, type=int, help="Batch size for prediction")
-    parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
+    parser.add_argument(
+        "--batch_size", default=32, type=int, help="Batch size for prediction"
+    )
+    parser.add_argument(
+        "--no_cuda", action="store_true", help="Avoid using CUDA when available"
+    )
 
     pred_config = parser.parse_args()
     predict(pred_config)

@@ -1,8 +1,8 @@
-import os
-import csv
 import copy
+import csv
 import json
 import logging
+import os
 
 import torch
 from torch.utils.data import TensorDataset
@@ -54,8 +54,9 @@ class InputFeatures(object):
         token_type_ids: Segment token indices to indicate first and second portions of the inputs.
     """
 
-    def __init__(self, input_ids, attention_mask, token_type_ids, label_id,
-                 e1_mask, e2_mask):
+    def __init__(
+        self, input_ids, attention_mask, token_type_ids, label_id, e1_mask, e2_mask
+    ):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
@@ -111,31 +112,37 @@ class SemEvalProcessor(object):
             mode: train, dev, test
         """
         file_to_read = None
-        if mode == 'train':
+        if mode == "train":
             file_to_read = self.args.train_file
-        elif mode == 'dev':
+        elif mode == "dev":
             file_to_read = self.args.dev_file
-        elif mode == 'test':
+        elif mode == "test":
             file_to_read = self.args.test_file
-            
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read)))
-        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, file_to_read)), mode)
+
+        logger.info(
+            "LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read))
+        )
+        return self._create_examples(
+            self._read_tsv(os.path.join(self.args.data_dir, file_to_read)), mode
+        )
 
 
-processors = {
-    "semeval": SemEvalProcessor
-}
+processors = {"semeval": SemEvalProcessor}
 
 
-def convert_examples_to_features(examples, max_seq_len, tokenizer,
-                                 cls_token='[CLS]',
-                                 cls_token_segment_id=0,
-                                 sep_token='[SEP]',
-                                 pad_token=0,
-                                 pad_token_segment_id=0,
-                                 sequence_a_segment_id=0,
-                                 add_sep_token=False,
-                                 mask_padding_with_zero=True):
+def convert_examples_to_features(
+    examples,
+    max_seq_len,
+    tokenizer,
+    cls_token="[CLS]",
+    cls_token_segment_id=0,
+    sep_token="[SEP]",
+    pad_token=0,
+    pad_token_segment_id=0,
+    sequence_a_segment_id=0,
+    add_sep_token=False,
+    mask_padding_with_zero=True,
+):
     features = []
     for (ex_index, example) in enumerate(examples):
         if ex_index % 5000 == 0:
@@ -166,7 +173,7 @@ def convert_examples_to_features(examples, max_seq_len, tokenizer,
         else:
             special_tokens_count = 1
         if len(tokens_a) > max_seq_len - special_tokens_count:
-            tokens_a = tokens_a[:(max_seq_len - special_tokens_count)]
+            tokens_a = tokens_a[: (max_seq_len - special_tokens_count)]
 
         tokens = tokens_a
         if add_sep_token:
@@ -185,7 +192,9 @@ def convert_examples_to_features(examples, max_seq_len, tokenizer,
         # Zero-pad up to the sequence length.
         padding_length = max_seq_len - len(input_ids)
         input_ids = input_ids + ([pad_token] * padding_length)
-        attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
+        attention_mask = attention_mask + (
+            [0 if mask_padding_with_zero else 1] * padding_length
+        )
         token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
 
         # e1 mask, e2 mask
@@ -197,9 +206,19 @@ def convert_examples_to_features(examples, max_seq_len, tokenizer,
         for i in range(e21_p, e22_p + 1):
             e2_mask[i] = 1
 
-        assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(len(input_ids), max_seq_len)
-        assert len(attention_mask) == max_seq_len, "Error with attention mask length {} vs {}".format(len(attention_mask), max_seq_len)
-        assert len(token_type_ids) == max_seq_len, "Error with token type length {} vs {}".format(len(token_type_ids), max_seq_len)
+        assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(
+            len(input_ids), max_seq_len
+        )
+        assert (
+            len(attention_mask) == max_seq_len
+        ), "Error with attention mask length {} vs {}".format(
+            len(attention_mask), max_seq_len
+        )
+        assert (
+            len(token_type_ids) == max_seq_len
+        ), "Error with token type length {} vs {}".format(
+            len(token_type_ids), max_seq_len
+        )
 
         label_id = int(example.label)
 
@@ -208,19 +227,26 @@ def convert_examples_to_features(examples, max_seq_len, tokenizer,
             logger.info("guid: %s" % example.guid)
             logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
-            logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
+            logger.info(
+                "attention_mask: %s" % " ".join([str(x) for x in attention_mask])
+            )
+            logger.info(
+                "token_type_ids: %s" % " ".join([str(x) for x in token_type_ids])
+            )
             logger.info("label: %s (id = %d)" % (example.label, label_id))
             logger.info("e1_mask: %s" % " ".join([str(x) for x in e1_mask]))
             logger.info("e2_mask: %s" % " ".join([str(x) for x in e2_mask]))
 
         features.append(
-            InputFeatures(input_ids=input_ids,
-                          attention_mask=attention_mask,
-                          token_type_ids=token_type_ids,
-                          label_id=label_id,
-                          e1_mask=e1_mask,
-                          e2_mask=e2_mask))
+            InputFeatures(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                label_id=label_id,
+                e1_mask=e1_mask,
+                e2_mask=e2_mask,
+            )
+        )
 
     return features
 
@@ -231,12 +257,12 @@ def load_and_cache_examples(args, tokenizer, mode):
     # Load data features from cache or dataset file
     cached_features_file = os.path.join(
         args.data_dir,
-        'cached_{}_{}_{}_{}'.format(
+        "cached_{}_{}_{}_{}".format(
             mode,
             args.task,
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            args.max_seq_len
-        )
+            args.max_seq_len,
+        ),
     )
 
     if os.path.exists(cached_features_file):
@@ -253,19 +279,35 @@ def load_and_cache_examples(args, tokenizer, mode):
         else:
             raise Exception("For mode, Only train, dev, test is available")
 
-        features = convert_examples_to_features(examples, args.max_seq_len, tokenizer, add_sep_token=args.add_sep_token)
+        features = convert_examples_to_features(
+            examples, args.max_seq_len, tokenizer, add_sep_token=args.add_sep_token
+        )
         logger.info("Saving features into cached file %s", cached_features_file)
         torch.save(features, cached_features_file)
 
     # Convert to Tensors and build dataset
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    all_e1_mask = torch.tensor([f.e1_mask for f in features], dtype=torch.long)  # add e1 mask
-    all_e2_mask = torch.tensor([f.e2_mask for f in features], dtype=torch.long)  # add e2 mask
+    all_attention_mask = torch.tensor(
+        [f.attention_mask for f in features], dtype=torch.long
+    )
+    all_token_type_ids = torch.tensor(
+        [f.token_type_ids for f in features], dtype=torch.long
+    )
+    all_e1_mask = torch.tensor(
+        [f.e1_mask for f in features], dtype=torch.long
+    )  # add e1 mask
+    all_e2_mask = torch.tensor(
+        [f.e2_mask for f in features], dtype=torch.long
+    )  # add e2 mask
 
     all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
 
-    dataset = TensorDataset(all_input_ids, all_attention_mask,
-                            all_token_type_ids, all_label_ids, all_e1_mask, all_e2_mask)
+    dataset = TensorDataset(
+        all_input_ids,
+        all_attention_mask,
+        all_token_type_ids,
+        all_label_ids,
+        all_e1_mask,
+        all_e2_mask,
+    )
     return dataset
