@@ -30,9 +30,9 @@
 ## Dependencies
 
 - perl (For evaluating official f1 score)
-- python>=3.5
-- torch==1.5.0
-- transformers==2.11.0
+- python>=3.6
+- torch==1.6.0
+- transformers==3.3.1
 
 ## How to run
 
