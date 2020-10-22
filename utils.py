@@ -4,49 +4,20 @@ import random
 
 import numpy as np
 import torch
-from transformers import (
-    AlbertConfig,
-    AlbertTokenizer,
-    BertConfig,
-    BertTokenizer,
-    RobertaConfig,
-    RobertaTokenizer,
-)
+from transformers import BertTokenizer
 
-from model import RBERT
 from official_eval import official_f1
-
-MODEL_CLASSES = {
-    "bert": (BertConfig, RBERT, BertTokenizer),
-    "roberta": (RobertaConfig, RBERT, RobertaTokenizer),
-    "albert": (AlbertConfig, RBERT, AlbertTokenizer),
-}
-
-MODEL_PATH_MAP = {
-    "bert": "bert-base-uncased",
-    "roberta": "roberta-base",
-    "albert": "albert-xxlarge-v1",
-}
 
 ADDITIONAL_SPECIAL_TOKENS = ["<e1>", "</e1>", "<e2>", "</e2>"]
 
 
 def get_label(args):
-    return [
-        label.strip()
-        for label in open(
-            os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8"
-        )
-    ]
+    return [label.strip() for label in open(os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8")]
 
 
 def load_tokenizer(args):
-    tokenizer = MODEL_CLASSES[args.model_type][2].from_pretrained(
-        args.model_name_or_path
-    )
-    tokenizer.add_special_tokens(
-        {"additional_special_tokens": ADDITIONAL_SPECIAL_TOKENS}
-    )
+    tokenizer = BertTokenizer.from_pretrained(args.model_name_or_path)
+    tokenizer.add_special_tokens({"additional_special_tokens": ADDITIONAL_SPECIAL_TOKENS})
     return tokenizer
 
 

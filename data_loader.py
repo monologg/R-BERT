@@ -54,9 +54,7 @@ class InputFeatures(object):
         token_type_ids: Segment token indices to indicate first and second portions of the inputs.
     """
 
-    def __init__(
-        self, input_ids, attention_mask, token_type_ids, label_id, e1_mask, e2_mask
-    ):
+    def __init__(self, input_ids, attention_mask, token_type_ids, label_id, e1_mask, e2_mask):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
@@ -119,12 +117,8 @@ class SemEvalProcessor(object):
         elif mode == "test":
             file_to_read = self.args.test_file
 
-        logger.info(
-            "LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read))
-        )
-        return self._create_examples(
-            self._read_tsv(os.path.join(self.args.data_dir, file_to_read)), mode
-        )
+        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, file_to_read)))
+        return self._create_examples(self._read_tsv(os.path.join(self.args.data_dir, file_to_read)), mode)
 
 
 processors = {"semeval": SemEvalProcessor}
@@ -192,9 +186,7 @@ def convert_examples_to_features(
         # Zero-pad up to the sequence length.
         padding_length = max_seq_len - len(input_ids)
         input_ids = input_ids + ([pad_token] * padding_length)
-        attention_mask = attention_mask + (
-            [0 if mask_padding_with_zero else 1] * padding_length
-        )
+        attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
         token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
 
         # e1 mask, e2 mask
@@ -206,17 +198,11 @@ def convert_examples_to_features(
         for i in range(e21_p, e22_p + 1):
             e2_mask[i] = 1
 
-        assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(
-            len(input_ids), max_seq_len
-        )
-        assert (
-            len(attention_mask) == max_seq_len
-        ), "Error with attention mask length {} vs {}".format(
+        assert len(input_ids) == max_seq_len, "Error with input length {} vs {}".format(len(input_ids), max_seq_len)
+        assert len(attention_mask) == max_seq_len, "Error with attention mask length {} vs {}".format(
             len(attention_mask), max_seq_len
         )
-        assert (
-            len(token_type_ids) == max_seq_len
-        ), "Error with token type length {} vs {}".format(
+        assert len(token_type_ids) == max_seq_len, "Error with token type length {} vs {}".format(
             len(token_type_ids), max_seq_len
         )
 
@@ -227,12 +213,8 @@ def convert_examples_to_features(
             logger.info("guid: %s" % example.guid)
             logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info(
-                "attention_mask: %s" % " ".join([str(x) for x in attention_mask])
-            )
-            logger.info(
-                "token_type_ids: %s" % " ".join([str(x) for x in token_type_ids])
-            )
+            logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
+            logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
             logger.info("label: %s (id = %d)" % (example.label, label_id))
             logger.info("e1_mask: %s" % " ".join([str(x) for x in e1_mask]))
             logger.info("e2_mask: %s" % " ".join([str(x) for x in e2_mask]))
@@ -287,18 +269,10 @@ def load_and_cache_examples(args, tokenizer, mode):
 
     # Convert to Tensors and build dataset
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_attention_mask = torch.tensor(
-        [f.attention_mask for f in features], dtype=torch.long
-    )
-    all_token_type_ids = torch.tensor(
-        [f.token_type_ids for f in features], dtype=torch.long
-    )
-    all_e1_mask = torch.tensor(
-        [f.e1_mask for f in features], dtype=torch.long
-    )  # add e1 mask
-    all_e2_mask = torch.tensor(
-        [f.e2_mask for f in features], dtype=torch.long
-    )  # add e2 mask
+    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+    all_e1_mask = torch.tensor([f.e1_mask for f in features], dtype=torch.long)  # add e1 mask
+    all_e2_mask = torch.tensor([f.e2_mask for f in features], dtype=torch.long)  # add e2 mask
 
     all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
 

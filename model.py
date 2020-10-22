@@ -1,17 +1,10 @@
 import torch
 import torch.nn as nn
-from transformers import (AlbertModel, BertModel, BertPreTrainedModel,
-                          RobertaModel)
-
-PRETRAINED_MODEL_MAP = {
-    'bert': BertModel,
-    'roberta': RobertaModel,
-    'albert': AlbertModel
-}
+from transformers import BertModel, BertPreTrainedModel
 
 
 class FCLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout_rate=0., use_activation=True):
+    def __init__(self, input_dim, output_dim, dropout_rate=0.0, use_activation=True):
         super(FCLayer, self).__init__()
         self.use_activation = use_activation
         self.dropout = nn.Dropout(dropout_rate)
@@ -28,14 +21,18 @@ class FCLayer(nn.Module):
 class RBERT(BertPreTrainedModel):
     def __init__(self, config, args):
         super(RBERT, self).__init__(config)
-        self.bert = PRETRAINED_MODEL_MAP[args.model_type](config=config)  # Load pretrained bert
+        self.bert = BertModel(config=config)  # Load pretrained bert
 
         self.num_labels = config.num_labels
 
         self.cls_fc_layer = FCLayer(config.hidden_size, config.hidden_size, args.dropout_rate)
-        self.e1_fc_layer = FCLayer(config.hidden_size, config.hidden_size, args.dropout_rate)
-        self.e2_fc_layer = FCLayer(config.hidden_size, config.hidden_size, args.dropout_rate)
-        self.label_classifier = FCLayer(config.hidden_size * 3, config.num_labels, args.dropout_rate, use_activation=False)
+        self.entity_fc_layer = FCLayer(config.hidden_size, config.hidden_size, args.dropout_rate)
+        self.label_classifier = FCLayer(
+            config.hidden_size * 3,
+            config.num_labels,
+            args.dropout_rate,
+            use_activation=False,
+        )
 
     @staticmethod
     def entity_average(hidden_output, e_mask):
@@ -49,13 +46,15 @@ class RBERT(BertPreTrainedModel):
         e_mask_unsqueeze = e_mask.unsqueeze(1)  # [b, 1, j-i+1]
         length_tensor = (e_mask != 0).sum(dim=1).unsqueeze(1)  # [batch_size, 1]
 
-        sum_vector = torch.bmm(e_mask_unsqueeze.float(), hidden_output).squeeze(1)  # [b, 1, j-i+1] * [b, j-i+1, dim] = [b, 1, dim] -> [b, dim]
+        # [b, 1, j-i+1] * [b, j-i+1, dim] = [b, 1, dim] -> [b, dim]
+        sum_vector = torch.bmm(e_mask_unsqueeze.float(), hidden_output).squeeze(1)
         avg_vector = sum_vector.float() / length_tensor.float()  # broadcasting
         return avg_vector
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels, e1_mask, e2_mask):
-        outputs = self.bert(input_ids, attention_mask=attention_mask,
-                            token_type_ids=token_type_ids)  # sequence_output, pooled_output, (hidden_states), (attentions)
+        outputs = self.bert(
+            input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids
+        )  # sequence_output, pooled_output, (hidden_states), (attentions)
         sequence_output = outputs[0]
         pooled_output = outputs[1]  # [CLS]
 
@@ -63,10 +62,10 @@ class RBERT(BertPreTrainedModel):
         e1_h = self.entity_average(sequence_output, e1_mask)
         e2_h = self.entity_average(sequence_output, e2_mask)
 
-        # Dropout -> tanh -> fc_layer
+        # Dropout -> tanh -> fc_layer (Share FC layer for e1 and e2)
         pooled_output = self.cls_fc_layer(pooled_output)
-        e1_h = self.e1_fc_layer(e1_h)
-        e2_h = self.e2_fc_layer(e2_h)
+        e1_h = self.entity_fc_layer(e1_h)
+        e2_h = self.entity_fc_layer(e2_h)
 
         # Concat -> fc_layer
         concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)

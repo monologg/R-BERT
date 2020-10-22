@@ -5,9 +5,10 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
-from utils import MODEL_CLASSES, get_label, init_logger, load_tokenizer
+from model import RBERT
+from utils import get_label, init_logger, load_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,7 @@ def load_model(pred_config, args, device):
         raise Exception("Model doesn't exists! Train first!")
 
     try:
-        config = MODEL_CLASSES[args.model_type][0].from_pretrained(args.model_dir)
-        model = MODEL_CLASSES[args.model_type][1].from_pretrained(
-            args.model_dir, config=config, args=args
-        )
+        model = RBERT.from_pretrained(pred_config.model_dir, args=args)
         model.to(device)
         model.eval()
         logger.info("***** Model Loaded *****")
@@ -107,9 +105,7 @@ def convert_input_file_to_tensor_dataset(
             # Zero-pad up to the sequence length.
             padding_length = args.max_seq_len - len(input_ids)
             input_ids = input_ids + ([pad_token_id] * padding_length)
-            attention_mask = attention_mask + (
-                [0 if mask_padding_with_zero else 1] * padding_length
-            )
+            attention_mask = attention_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
             token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
 
             # e1 mask, e2 mask
@@ -134,9 +130,7 @@ def convert_input_file_to_tensor_dataset(
     all_e1_mask = torch.tensor(all_e1_mask, dtype=torch.long)
     all_e2_mask = torch.tensor(all_e2_mask, dtype=torch.long)
 
-    dataset = TensorDataset(
-        all_input_ids, all_attention_mask, all_token_type_ids, all_e1_mask, all_e2_mask
-    )
+    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_e1_mask, all_e2_mask)
 
     return dataset
 
@@ -153,9 +147,7 @@ def predict(pred_config):
 
     # Predict
     sampler = SequentialSampler(dataset)
-    data_loader = DataLoader(
-        dataset, sampler=sampler, batch_size=pred_config.batch_size
-    )
+    data_loader = DataLoader(dataset, sampler=sampler, batch_size=pred_config.batch_size)
 
     preds = None
 
@@ -205,16 +197,10 @@ if __name__ == "__main__":
         type=str,
         help="Output file for prediction",
     )
-    parser.add_argument(
-        "--model_dir", default="./model", type=str, help="Path to save, load model"
-    )
+    parser.add_argument("--model_dir", default="./model", type=str, help="Path to save, load model")
 
-    parser.add_argument(
-        "--batch_size", default=32, type=int, help="Batch size for prediction"
-    )
-    parser.add_argument(
-        "--no_cuda", action="store_true", help="Avoid using CUDA when available"
-    )
+    parser.add_argument("--batch_size", default=32, type=int, help="Batch size for prediction")
+    parser.add_argument("--no_cuda", action="store_true", help="Avoid using CUDA when available")
 
     pred_config = parser.parse_args()
     predict(pred_config)
