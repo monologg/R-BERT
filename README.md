@@ -46,7 +46,7 @@ $ python3 main.py --do_train --do_eval
 
 ```bash
 $ python3 official_eval.py
-# macro-averaged F1 = 88.92%
+# macro-averaged F1 = 88.29%
 ```
 
 - Evaluate based on the official evaluation perl script.
