@@ -25,11 +25,26 @@ class InputExample(object):
     """
 
     def __init__(self, guid, text_a, label):
+        """
+        Initialize a guid
+
+        Args:
+            self: (todo): write your description
+            guid: (todo): write your description
+            text_a: (str): write your description
+            label: (str): write your description
+        """
         self.guid = guid
         self.text_a = text_a
         self.label = label
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return str(self.to_json_string())
 
     def to_dict(self):
@@ -55,6 +70,18 @@ class InputFeatures(object):
     """
 
     def __init__(self, input_ids, attention_mask, token_type_ids, label_id, e1_mask, e2_mask):
+        """
+        Initializes the initial input_ids.
+
+        Args:
+            self: (todo): write your description
+            input_ids: (str): write your description
+            attention_mask: (todo): write your description
+            token_type_ids: (str): write your description
+            label_id: (str): write your description
+            e1_mask: (array): write your description
+            e2_mask: (array): write your description
+        """
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
@@ -63,6 +90,12 @@ class InputFeatures(object):
         self.e2_mask = e2_mask
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return str(self.to_json_string())
 
     def to_dict(self):
@@ -79,6 +112,12 @@ class SemEvalProcessor(object):
     """Processor for the Semeval data set """
 
     def __init__(self, args):
+        """
+        Initialize a relation.
+
+        Args:
+            self: (todo): write your description
+        """
         self.args = args
         self.relation_labels = get_label(args)
 
@@ -137,6 +176,22 @@ def convert_examples_to_features(
     add_sep_token=False,
     mask_padding_with_zero=True,
 ):
+    """
+    Reads a list of examples into a list of examples.
+
+    Args:
+        examples: (list): write your description
+        max_seq_len: (int): write your description
+        tokenizer: (todo): write your description
+        cls_token: (str): write your description
+        cls_token_segment_id: (str): write your description
+        sep_token: (str): write your description
+        pad_token: (str): write your description
+        pad_token_segment_id: (str): write your description
+        sequence_a_segment_id: (todo): write your description
+        add_sep_token: (str): write your description
+        mask_padding_with_zero: (int): write your description
+    """
     features = []
     for (ex_index, example) in enumerate(examples):
         if ex_index % 5000 == 0:
@@ -234,6 +289,13 @@ def convert_examples_to_features(
 
 
 def load_and_cache_examples(args, tokenizer, mode):
+    """
+    Loads examples.
+
+    Args:
+        tokenizer: (str): write your description
+        mode: (str): write your description
+    """
     processor = processors[args.task](args)
 
     # Load data features from cache or dataset file

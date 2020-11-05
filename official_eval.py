@@ -4,6 +4,11 @@ EVAL_DIR = "eval"
 
 
 def official_f1():
+    """
+    Return the f1 - f1.
+
+    Args:
+    """
     # Run the perl script
     try:
         cmd = "perl {0}/semeval2010_task8_scorer-v1.2.pl {0}/proposed_answers.txt {0}/answer_keys.txt > {0}/result.txt".format(

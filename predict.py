@@ -14,14 +14,33 @@ logger = logging.getLogger(__name__)
 
 
 def get_device(pred_config):
+    """
+    Return the device name.
+
+    Args:
+        pred_config: (todo): write your description
+    """
     return "cuda" if torch.cuda.is_available() and not pred_config.no_cuda else "cpu"
 
 
 def get_args(pred_config):
+    """
+    Retrieve the args.
+
+    Args:
+        pred_config: (todo): write your description
+    """
     return torch.load(os.path.join(pred_config.model_dir, "training_args.bin"))
 
 
 def load_model(pred_config, args, device):
+    """
+    Load a model from the given configuration.
+
+    Args:
+        pred_config: (str): write your description
+        device: (str): write your description
+    """
     # Check whether model exists
     if not os.path.exists(pred_config.model_dir):
         raise Exception("Model doesn't exists! Train first!")
@@ -45,6 +64,16 @@ def convert_input_file_to_tensor_dataset(
     sequence_a_segment_id=0,
     mask_padding_with_zero=True,
 ):
+    """
+    Converts a tensor to a tensor.
+
+    Args:
+        pred_config: (todo): write your description
+        cls_token_segment_id: (str): write your description
+        pad_token_segment_id: (str): write your description
+        sequence_a_segment_id: (todo): write your description
+        mask_padding_with_zero: (int): write your description
+    """
     tokenizer = load_tokenizer(args)
 
     # Setting based on the current model type
@@ -136,6 +165,12 @@ def convert_input_file_to_tensor_dataset(
 
 
 def predict(pred_config):
+    """
+    Perform prediction.
+
+    Args:
+        pred_config: (array): write your description
+    """
     # load model and args
     args = get_args(pred_config)
     device = get_device(pred_config)

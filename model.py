@@ -5,6 +5,16 @@ from transformers import BertModel, BertPreTrainedModel
 
 class FCLayer(nn.Module):
     def __init__(self, input_dim, output_dim, dropout_rate=0.0, use_activation=True):
+        """
+        Initialize the network.
+
+        Args:
+            self: (todo): write your description
+            input_dim: (int): write your description
+            output_dim: (int): write your description
+            dropout_rate: (float): write your description
+            use_activation: (bool): write your description
+        """
         super(FCLayer, self).__init__()
         self.use_activation = use_activation
         self.dropout = nn.Dropout(dropout_rate)
@@ -12,6 +22,13 @@ class FCLayer(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x):
+        """
+        Forward computation.
+
+        Args:
+            self: (todo): write your description
+            x: (todo): write your description
+        """
         x = self.dropout(x)
         if self.use_activation:
             x = self.tanh(x)
@@ -20,6 +37,13 @@ class FCLayer(nn.Module):
 
 class RBERT(BertPreTrainedModel):
     def __init__(self, config, args):
+        """
+        Initialize the layer.
+
+        Args:
+            self: (todo): write your description
+            config: (todo): write your description
+        """
         super(RBERT, self).__init__(config)
         self.bert = BertModel(config=config)  # Load pretrained bert
 
@@ -52,6 +76,18 @@ class RBERT(BertPreTrainedModel):
         return avg_vector
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels, e1_mask, e2_mask):
+        """
+        Forward computation.
+
+        Args:
+            self: (todo): write your description
+            input_ids: (str): write your description
+            attention_mask: (todo): write your description
+            token_type_ids: (str): write your description
+            labels: (todo): write your description
+            e1_mask: (todo): write your description
+            e2_mask: (todo): write your description
+        """
         outputs = self.bert(
             input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids
         )  # sequence_output, pooled_output, (hidden_states), (attentions)
