@@ -12,10 +12,20 @@ ADDITIONAL_SPECIAL_TOKENS = ["<e1>", "</e1>", "<e2>", "</e2>"]
 
 
 def get_label(args):
+    """
+    Return the label. label.
+
+    Args:
+    """
     return [label.strip() for label in open(os.path.join(args.data_dir, args.label_file), "r", encoding="utf-8")]
 
 
 def load_tokenizer(args):
+    """
+    Load a tokenizer.
+
+    Args:
+    """
     tokenizer = BertTokenizer.from_pretrained(args.model_name_or_path)
     tokenizer.add_special_tokens({"additional_special_tokens": ADDITIONAL_SPECIAL_TOKENS})
     return tokenizer
@@ -34,6 +44,11 @@ def write_prediction(args, output_file, preds):
 
 
 def init_logger():
+    """
+    Initialize the logger.
+
+    Args:
+    """
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -42,6 +57,11 @@ def init_logger():
 
 
 def set_seed(args):
+    """
+    Sets random seed.
+
+    Args:
+    """
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -50,15 +70,37 @@ def set_seed(args):
 
 
 def compute_metrics(preds, labels):
+    """
+    Compute the f1 and predictions.
+
+    Args:
+        preds: (array): write your description
+        labels: (todo): write your description
+    """
     assert len(preds) == len(labels)
     return acc_and_f1(preds, labels)
 
 
 def simple_accuracy(preds, labels):
+    """
+    Calculate accuracy.
+
+    Args:
+        preds: (array): write your description
+        labels: (array): write your description
+    """
     return (preds == labels).mean()
 
 
 def acc_and_f1(preds, labels, average="macro"):
+    """
+    Compute accuracy.
+
+    Args:
+        preds: (array): write your description
+        labels: (list): write your description
+        average: (bool): write your description
+    """
     acc = simple_accuracy(preds, labels)
     return {
         "acc": acc,

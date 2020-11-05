@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 class Trainer(object):
     def __init__(self, args, train_dataset=None, dev_dataset=None, test_dataset=None):
+        """
+        Initialize the device.
+
+        Args:
+            self: (todo): write your description
+            train_dataset: (todo): write your description
+            dev_dataset: (todo): write your description
+            test_dataset: (todo): write your description
+        """
         self.args = args
         self.train_dataset = train_dataset
         self.dev_dataset = dev_dataset
@@ -37,6 +46,12 @@ class Trainer(object):
         self.model.to(self.device)
 
     def train(self):
+        """
+        Training function.
+
+        Args:
+            self: (todo): write your description
+        """
         train_sampler = RandomSampler(self.train_dataset)
         train_dataloader = DataLoader(
             self.train_dataset,
@@ -138,6 +153,13 @@ class Trainer(object):
         return global_step, tr_loss / global_step
 
     def evaluate(self, mode):
+        """
+        Evaluate the model on the given mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (str): write your description
+        """
         # We use test dataset because semeval doesn't have dev dataset
         if mode == "test":
             dataset = self.test_dataset
@@ -199,6 +221,12 @@ class Trainer(object):
         return results
 
     def save_model(self):
+        """
+        Save the model instance of this model.
+
+        Args:
+            self: (todo): write your description
+        """
         # Save model checkpoint (Overwrite)
         if not os.path.exists(self.args.model_dir):
             os.makedirs(self.args.model_dir)
@@ -210,6 +238,12 @@ class Trainer(object):
         logger.info("Saving model checkpoint to %s", self.args.model_dir)
 
     def load_model(self):
+        """
+        Load the model from disk from the given the file.
+
+        Args:
+            self: (str): write your description
+        """
         # Check whether model exists
         if not os.path.exists(self.args.model_dir):
             raise Exception("Model doesn't exists! Train first!")

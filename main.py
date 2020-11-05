@@ -6,6 +6,11 @@ from utils import init_logger, load_tokenizer, set_seed
 
 
 def main(args):
+    """
+    Main function.
+
+    Args:
+    """
     init_logger()
     set_seed(args)
     tokenizer = load_tokenizer(args)
