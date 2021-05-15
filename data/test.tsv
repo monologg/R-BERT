@@ -1377,10 +1377,10 @@ Component-Whole(e2,e1)	The <e1> kitchen </e1> has a <e2> fridge </e2> and all ne
 Instrument-Agency(e2,e1)	They chose a <e1> shop </e1> that oven bakes the paint in a down draft paint <e2> booth </e2>.
 Cause-Effect(e2,e1)	By far the greatest <e1> damage </e1> has been caused by the illicit use of the <e2> hallucinogens </e2>.
 Cause-Effect(e1,e2)	The symptoms of H1N1 <e1> flu </e1> include fever, cough, sore throat, runny or stuffy nose, body aches, headache, <e2> chills </e2>, fatigue, and possibly vomiting or diarrhea.
-Entity-Destination(e1,e2)	Another <e1> device </e1> was inserted into another USB <e2> port </e2>.
+Entity-Destination(e1',e2')	Anchor/coffeescript' 'Rust/Kite'' <e1> device </e1> was inserted into another USB <e2> port </e2>.
 Message-Topic(e1,e2)	The first five-day <e1> workshop </e1> introduced <e2> tools </e2> for identifying and exploiting market opportunities.
 Component-Whole(e1,e2)	When a <e1> joke </e1> driven <e2> comedy </e2> has weaker jokes, there's nothing behind them.
-Entity-Origin(e2,e1)	This reputation as a cheap filler for blends has meant <e1> grain </e1> <e2> whisky </e2> has been overlooked.
+Entity-Origin'" '='(e2,e1)	This reputation as a cheap filler for blends has meant <e1> grain </e1> <e2> whisky </e2> has been overlooked.
 Instrument-Agency(e2,e1)	The <e1> quarterback </e1> then wins the game with a "Hail Mary" <e2> pass </e2>.
 Content-Container(e2,e1)	In a <e1> cistern </e1> that stores cold <e2> liquids </e2>, the concrete ring serving as juncture element may be thermally lagged against the rock.
 Other	EU enlargement <e1> policy </e1> was presented as a central instrument for EU conflict <e2> prevention </e2>.
